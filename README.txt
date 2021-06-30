@@ -1,0 +1,162 @@
+CRISP CODEX Processor
+
+**System Requirements**
+x86 processor
+32GB RAM (recommended)
+Nvidia CUDA-compatible Graphics Card (required)
+	-1080Ti or 2080Ti with 11GB VRAM (recommended)
+	-Video RAM determines the maximum size and Z-stack size for processing
+SSD or NAS are recommended for improved file read and write speeds
+Windows 10 or Windows Server 2016+ (64-bit)
+
+**Installation**
+Software Requirements
+CUDA 10.2
+https://developer.nvidia.com/cuda-toolkit-archive
+
+vips 8.10.1
+https://libvips.github.io/libvips/install.html
+**make sure to add path to the bin folder to system environment variables
+
+Visual Studio Community
+https://visualstudio.microsoft.com/vs/community/
+
+Microsoft Visual C++ Redistributable 2015-2019
+https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads
+
+Python 3.8+
+https://www.python.org/
+
+**Set NotePad or NotePad++ to default app to open .toml files**
+
+Python packages
+**to install, navigate to CRISP folder in terminal or command prompt, then run "pip install -r requirements.txt" 
+numpy
+scipy
+toml
+humanfriendly
+xmltodict
+scikit-image
+
+**Input Image File Folder Structure**
+	Run directory
+		|
+		->Cycle 1 Region 1 images ["cyc001_reg001"]
+		|	|
+		|	-> Tiled stacked multichannel images (grayscale 16-bit) file name pattern ["*_00001_Z001_CH1.tif"]
+		|		["*_00001_Z002_CH1.tif"] ... any string_tile index_Z slice_channel.tif
+		|
+		->Cycle 1 Region 2 images ["cyc001_reg002"]
+		|	|
+		|	-> Tiled stacked multichannel images (grayscale 16-bit) file name pattern ["*_00001_Z001_CH1.tif"]
+		|		["*_00001_Z002_CH1.tif"] ... any string_tile index_Z slice_channel.tif
+		|
+		...
+		|
+		->channelNames.txt
+		->exposure_times.txt
+		->CRISP_config.toml
+		-> *opitonal* darkfield.tif
+		-> *opitonal* flatfield.tif
+		-> *opitonal* CODEX experiment config file.XML
+		
+**Experimental Configuration**
+Copy and configure CRISP_config.toml to match experimental settings. 
+(Optional) if experiment was performed on an Akoya CODEX instrument, copy CODEX template XML file to the folder containing the output images.
+(Optional) generate darkfield and flatfield images for shade correction; see below for instructions.
+	The provided example is for images captured on a Keyence microscope using: 
+	- a 20x 0.75NA widefield, non-immersion (air) objective lens (Nikon)
+	- high resolution settings
+	- 30% image overlaps
+	- PSF generation using the Gibson-Lanni method has been optimized by a global optimizer to calculate experimental values versus the theoretical values
+	
+	Edit the following sections:
+		[dimensions] # experimental parameters
+		width, height, slices, gx, gy, cycles, regions, overlap_x, overlap_y
+	  
+		[microscope] # microscope characteristics and settings
+		magnification, NA, resXY, resZ
+    
+		[correction] # shading correction using experimental darkfield and flatfield images
+		correct_darkfield, correct_flatfield
+		
+		[padding]			# pads Z-stacks for deconvolution, trims out of focus slices from top and bottom of stack
+		zout 				# squashes imagestack down to zout slices
+		ztrim1				# trim slices from the beginning of the stack
+		ztrim2	 			# trim slices from the end of the stack
+		
+		[deconvolution]
+		iterations
+		host_obj_init = false 		# Slower! Store one of the arrays on the CPU to conserve VRAM; ONLY USE IF NOT ENOUGH GPU VRAM
+		
+		[extended_depth_of_field]
+		enabled
+		
+		[dynamic_range_compression]
+		drc0, drc1
+		
+		[background_subtraction]
+		 # perform background subtraction using up to 3 cycles
+		 # cycles are specified as 1-indexed: 1 is the first cycle, -1 is the last cycle, -2 is the penultimate cycle, etc.
+		blankcycles = [1, -3, -2] # indicate which cycles are blank cycles; set to [] to disable background subtraction
+
+*** Background subtraction and exposure time for cycles: if imaging was performed on an Akoya CODEX instrument, import the XML file from the configuration. 
+If not, please supply a text file as exposure_times.txt in the following format:
+
+Cycle	CH1	CH2	CH3	CH4
+1	5	33.333	40	66.667
+2	5	333.333	500	250
+...
+
+**3 ways to run**
+1. With a GUI window:
+	Run CRISP_CODEX_log.bat
+	Select input, output, and scratch drive folders
+	Create and edit the config file
+	Click "Start..."
+	
+2. In jupyter notebook: 
+	make sure CRISP_config.toml file is properly configured in the input directory 
+	>import CRISP_process_GUI as CRISP
+	>CRISP.nb_process(input_path, output_path, scratch_dir)
+
+3. In a python IDE (IDLE):
+	Edit CRISP_process.py
+	- point scratch_drive to a scratch drive with sufficient space (Deconvolved images and full-resolution stitched montages will be saved here; ideally this is a 2TB NVME drive)
+	- point input_path to the parent folder of a multicycle run
+	- point output_path to a folder for final processed images (this can be on a NAS, images will be saved similar to the output format of the Akoya CODEX processor)
+	save edits to CRISP_process.py
+	run module (F5)
+	
+IMPORTANT: Current parallel processing is threaded for graphics cards with 11GB of VRAM. If you have less graphics memory, edit function calls in CRISP_process or CRISP_process_GUI to use fewer threads.
+
+**Darkfield and Flatfield correction**
+To generate darkfield images of sensor noise:
+1. Match capture settings to your experiment (i.e. "High Resolution" "1x1 binning" "12dB gain") 
+2. Reduce excitation light to as low as possible
+3. Use a relatively short exposure time (25ms)
+4. Capture 100-500 images (multipoint or 3D capture) without slides or samples
+5. Use ImageJ/FIJI to generate a median signal from these images
+6. Save this median to the raw images folder
+- darkfield will not likely change between experiments, however will change if different sensor settings are used (i.e. different binning or sensor gain)
+
+To generate flatfield images:
+1. Add small amounts of FITC or fluorescent dye in between two coverslips or on a slide, making sure it is evenly distributed
+2. Place onto the microscope
+3. Adjust exposure settings by monitoring the image histogram so that the signal is not saturated
+4. Capture 100-500 images (multipoint or 3D capture) at various positions on the sample holder
+5. Use ImageJ/FIJI to generate a median signal from these images
+6. Save this median to the raw images folder
+- flatfield can be different in each channel and uneven illumination can occur with sample chamber orientation, this correction is limited to different signal intensity caused by lens abberations or microscope alignment
+- significant uneven illumination after this step may require preprocessing such as rolling circle background subtraction prior to processing
+
+Release notes:
+v0.5.2
+-changed TIFF compression from LZW to deflat
+-added temp file to load previous settings
+-added setting file to externally set number of max threads for each process
+v0.5.1
+-fixed bug in output directory path
+-added checkbox options for skipping already performed steps
+v0.5.0a
+-minor fixes to reading configuration files from XML

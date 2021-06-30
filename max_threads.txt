@@ -1,0 +1,8 @@
+max_threads_edge_alignment=1
+max_threads_z_driftcomp=1
+max_threads_deconvolution=2
+max_threads_xy_driftcomp=4
+max_threads_dicing=8
+#####################
+ADJUST MAX THREADS USED FOR PARALLELIZATION
+parallelization is limited by GPU memory; defaults have been adjusted for an 11GB card

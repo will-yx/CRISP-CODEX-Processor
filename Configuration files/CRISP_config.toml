@@ -1,0 +1,87 @@
+title = "20X Keyence deconvolution configuration"
+
+[dimensions]
+width = 1920    # width of each image
+height = 1440   # height of each image
+slices = 25     # number of Z-slices
+gx = 5          # number of image columns per region
+gy = 5          # number of image rows per region
+cycles = 19     # number of cycles imaged in run
+regions = 10    # number of tissue regions in run
+overlap_x = 0.3 # fraction of overlap between images in X
+overlap_y = 0.3 # fraction of overlap between images in Y
+
+[microscope]
+model = "Keyence BZ-X 710"
+magnification = 20
+NA = 0.75 # numerical aperture of objective lens
+
+channelNames = {1 = 'HOECHST', 2 = 'FITC', 3 = 'Atto550', 4 = 'A647'}
+wavelengthEM = {1 = 455,       2 = 517,    3 = 580,       4 = 675} # [nm] max emission wavelength of fluorophore
+fwhmEM       = {1 =  70,       2 =  40,    3 =  30,       4 =  25} # [nm] full-width at half-max of emmission spectra; set to 0 to approximate
+channelZPos  = {1 = 0.0,       2 = 0.0,    3 = 0.0,       4 = 0.0} # [um] relative Z-position of channels; measured by approximating Z-offsets using omnifluorescent beads; first channel should be 0
+
+resXY = 0.377387  # [um/px] pixel size
+resZ = 0.800      # [um/px] Z slice distance
+
+[gibson_lanni]
+nbasis = 1000     # number of Bessel functions to use; determines accuracy; default 1000
+nrho = 10000      # number of angles to compute; determines accuracy; default 10000
+zpos = 10.2       # [um] position of particle above coverslip; roughly the thickness of tissue section in um;
+ti0  = 1000       # [um] working distance of objective lens in um;
+tg   = 173.4      # [um] coverslip thickness (experimental)
+tg0  = 170        # [um] coverslip thickness (design)
+ng   = 1.500      # refractive index of glass (experimental)
+ng0  = 1.515      # refractive index of glass (design)
+ni   = 1.000274   # refractive index of immersion medium (oil/air) (experimental)
+ni0  = 1.0003     # refractive index of immersion medium (oil/air) (design)
+ns   = 1.397      # refractive index of sample (optimized based on 1X CODEX buffer with 20% DMSO)
+
+[correction]
+correct_darkfield = false # if true, supply a darkfield image to correct microscope sensor noise
+correct_flatfield = false # if true, supply a flat field image to correct illumination/filter noise
+
+# dark/flat correction images must be placed within the run directory
+darkfield_images = 'darkfield.tif'
+flatfield_images = ['flatfield.tif', 'flatfield.tif', 'flatfield.tif', 'flatfield.tif']
+
+[padding]
+extend_psf = false
+center_psf = true			
+zshift_psf = 0.0
+dering_object = -2.0 
+
+zpad_min = 0.9 # pad image depth by at least this fraction of Z
+zpad_max = 1.1 # pad image depth by at most this fraction of Z
+
+# Typically you want zout = zin - ztrim1 - ztrim2, so each output slice is calculated from a single input slice
+zout   = 11    # squashes trimmed imagestack down to zout slices
+ztrim1 = 7     # trim slices from the beginning of the stack
+ztrim2 = 7     # trim slices from the end of the stack
+
+frame_zshift = true # shift zstacks to put best-focus slice in the center of the stack
+tiled_zshift = true # shift zstacks tilewise to correct for tilt within each image
+
+[deconvolution]
+iterations = 50          # number of Richardson-Lucy iterations
+blind = false            # if true, PSF is updated periodically
+psf_update_interval = 1  # for blind deconvolution, how often to update the PSF
+
+host_obj_init = false 		# slower! Store one of the arrays on the CPU to conserve VRAM; ONLY USE IF NOT ENOUGH GPU VRAM
+
+[extended_depth_of_field]
+enabled = true            # compute EDF image; default true
+save_zstack = true        # save non-EDF images; default true
+
+[dynamic_range_compression]
+# image processes are performed as 32-bit float and output as 16-bit
+# DRC log-transforms values that between drc0 and drc1 to fit within the remaining 16-bit range
+# values between 0 and drc0 are stored exactly (to the nearest integer)
+# set drc0 and drc1 to 0 to disable DRC and clip values to the range [0, 65535]
+drc0 =    60000 # top of linear range - largest value that is exactly represented
+drc1 =  1000000 # largest representable float
+
+[background_subtraction]
+# perform background subtraction using up to 3 cycles
+# cycles are specified as 1-indexed: 1 is the first cycle, -1 is the last cycle, -2 is the penultimate cycle, etc.
+blankcycles = [1, -2, -1] # indicate which cycles are blank cycles; set to [] to disable background subtraction

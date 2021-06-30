@@ -1,0 +1,6 @@
+numpy
+scipy
+toml
+humanfriendly
+xmltodict
+scikit-image

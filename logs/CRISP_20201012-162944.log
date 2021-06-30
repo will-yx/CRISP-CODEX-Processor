@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "CRISP_process_GUI.py", line 13, in <module>
+    from edge_alignment import main as edge_alignment
+  File "N:\CRISP uploader dev\edge_alignment.py", line 22, in <module>
+    libCRISP = CDLL(CRISP_path if os.path.isfile(CRISP_path) else 'CRISP.dll')
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python37\lib\ctypes\__init__.py", line 356, in __init__
+    self._handle = _dlopen(self._name, mode)
+OSError: [WinError 126] The specified module could not be found
