@@ -39,7 +39,7 @@ def updateJSON(indir, toml_file):
     json_dict['bestFocusReferenceCycle'] = 0
     json_dict['bestFocusReferenceChannel'] = 0
     json_dict['numSubTiles'] = 0
-    json_dict['focusingOffset'] = CRISPtoml['microscope']['channelZPos']
+    json_dict['focusingOffset'] = 0
     json_dict['useBackgroundSubtraction'] = bool(CRISPtoml['background_subtraction'])
     json_dict['useShadingCorrection'] = any([CRISPtoml['correction']['correct_darkfield'],CRISPtoml['correction']['correct_flatfield']])
     json_dict['use3dDriftCompensation'] = True
@@ -61,7 +61,7 @@ def updateJSON(indir, toml_file):
     json_dict['numerical_aperture'] = CRISPtoml['microscope']['NA']
     json_dict['per_pixel_XY_resolution'] = CRISPtoml['microscope']['resXY']*1000
     json_dict['z_pitch'] = CRISPtoml['microscope']['resZ']*1000
-    json_dict['focusing_offset'] = CRISPtoml['microscope']['channelZPos']
+    json_dict['focusing_offset'] = 0
     json_dict['tiling_mode'] = 'snake'
     json_dict['deconvolution'] = 'CRISP_{}'.format(CRISPtoml['deconvolution']['iterations'])
     
