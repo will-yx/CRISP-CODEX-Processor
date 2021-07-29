@@ -19,6 +19,7 @@ from driftcomp_xy import main as driftcomp_xy
 from CRISP_register import main as CRISP_register
 from CRISP_stitch import main as CRISP_stitch
 from dice_mosaics import main as dice_mosaics
+from updateJSON import updateJSON
 
 class Checkbar(Frame):
   def __init__(self, parent=None, picks=[], side=LEFT, anchor=W):
@@ -239,6 +240,9 @@ class MainWindow(Tk):
       print('Dicing output images:')
       dice_mosaics(stitchdir, finaldir, config, max_threads=max_threads_dicing)
       print("Dicing complete...")
+
+    #Update experiment.json for MAV
+    updateJSON(indir, os.path.join(indir, 'CRISP_config.toml'))
     
     print("Copying config files to '{}'".format(finaldir))
     to_copy = []

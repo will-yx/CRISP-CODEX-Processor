@@ -1,6 +1,7 @@
 numpy
 scipy
 toml
+imagecodecs
 humanfriendly
 xmltodict
 scikit-image

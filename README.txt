@@ -33,6 +33,7 @@ Python packages
 **to install, navigate to CRISP folder in terminal or command prompt, then run "pip install -r requirements.txt" 
 numpy
 scipy
+imagecodecs
 toml
 humanfriendly
 xmltodict
