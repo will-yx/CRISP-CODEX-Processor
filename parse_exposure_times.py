@@ -4,8 +4,9 @@ import xmltodict
 import numpy as np
 
 def parse_exposure_times(indir):
-  if 1:
+  if len(glob.glob(os.path.join(indir,'*.xml')))==1:
     xmlfiles = glob.glob(os.path.join(indir,'*.xml'))
+    print("Reading exposure times from XML file...")
     for xmlfile in xmlfiles:
       with open(xmlfile) as fd:
         doc = xmltodict.parse(fd.read())
@@ -41,8 +42,9 @@ def parse_exposure_times(indir):
           file.write(exposureTimes.tobytes())
           file.write(wavelengthEX.tobytes())
   
-  if 0:
+  else:
     exposure_times_txt = os.path.join(indir,'exposure_times.txt')
+    print("Reading exposure times from txt file...")
     
     exposure_times = np.genfromtxt(exposure_times_txt, skip_header=1, delimiter=',')
     if np.any(np.isnan(exposure_times)):

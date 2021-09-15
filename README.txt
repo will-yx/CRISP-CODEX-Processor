@@ -111,7 +111,7 @@ Cycle	CH1	CH2	CH3	CH4
 
 **3 ways to run**
 1. With a GUI window:
-	Run CRISP_CODEX_log.bat
+	Run CRISP_CODEX_nolog.bat
 	Select input, output, and scratch drive folders
 	Create and edit the config file
 	Click "Start..."
@@ -119,7 +119,7 @@ Cycle	CH1	CH2	CH3	CH4
 2. In jupyter notebook: 
 	make sure CRISP_config.toml file is properly configured in the input directory 
 	>import CRISP_process_GUI as CRISP
-	>CRISP.nb_process(input_path, output_path, scratch_dir)
+	>CRISP.process(input_path, output_path, scratch_dir)
 
 3. In a python IDE (IDLE):
 	Edit CRISP_process.py
@@ -153,7 +153,7 @@ To generate flatfield images:
 
 Release notes:
 v0.5.2
--changed TIFF compression from LZW to deflat
+-changed TIFF compression from LZW to deflate
 -added temp file to load previous settings
 -added setting file to externally set number of max threads for each process
 v0.5.1
