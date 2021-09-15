@@ -13,6 +13,7 @@ from driftcomp_xy import main as driftcomp_xy
 from CRISP_register import main as CRISP_register
 from CRISP_stitch import main as CRISP_stitch
 from dice_mosaics import main as dice_mosaics
+from updateJSON import updateJSON
 
 #####################################
 #SET PARAMETERS
@@ -57,7 +58,8 @@ for run in runs:
   #Step 5: Dice stitched mosaics for output
   dice_mosaics(stitchdir, finaldir, config, max_threads=8)
 
-  break
+  #Update experiment.json for MAV
+  updateJSON(indir, os.path.join(indir, 'CRISP_config.toml'))
   
   print("Copying config files to '{}'".format(finaldir))
   to_copy = []
