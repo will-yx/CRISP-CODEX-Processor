@@ -18,8 +18,8 @@ from updateJSON import updateJSON
 #####################################
 #SET PARAMETERS
 scratch_drive = 'X:/'
-input_dir  = 'X:/temp/CODEX raw'
-output_dir = 'X:/temp/CODEX processed'
+input_dir  = 'X:/CODEX raw'
+output_dir = 'X:/CODEX processed'
 #List of folder names for each multicycle
 runs = ['20201008_test']
 #####################################

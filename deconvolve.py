@@ -496,9 +496,7 @@ def load_config(indir):
   return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat
 
 
-
-
-def main(indir, outdir, max_threads=2):
+def main(indir, outdir, max_threads=2, override=0):
   d_in, d_out, channels, cycles, regions, positions = check_files(indir, outdir)
   
   p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat = load_config(indir)
@@ -510,9 +508,14 @@ def main(indir, outdir, max_threads=2):
     print('Image stack size is too small, aborting!')
     return 1
   
-  resume = False # check deconvolution progress file for remaining jobs
-  
   jobs = list(itertools.product(cycles, channels, regions, positions))
+  resume = True # check deconvolution progress file for remaining jobs
+  
+  if override: # Perform deconvolution on a specific set of tiles
+    jobs = override #(cycles, channels, regions, positions)
+    print('Override mode: deconvolving {}'.format(jobs))
+    resume = False # do not use resume for override
+  
   dispatch_jobs(outdir, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshifts, czshifts, ca_xy, dark, flat, jobs, resume, max_threads)
   
   print("Completed processing '{}'".format(indir))
@@ -525,19 +528,16 @@ if __name__ == '__main__':
   
   ###########################################################################################
   indir  = 'N:/CODEX raw/Mouse Sk Muscle/20190513_run08'
-  outdir = 'X:/temp/deleteme/20190513_run08_testing'
+  tempdir = 'X:/temp/deleteme/20190513_run08_testing'
+  override_jobs = False
   ###########################################################################################
   
   t0 = timer()
-  main(indir, outdir)
+  main(indir, tempdir, max_threads=2, override=override_jobs)
   free_libs([libCRISP, libc])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
   print('Total run time: {}'.format(elapsed))
   
   pyCaffeinate.allowSleep()
-  
-
-
-
   
