@@ -8,7 +8,8 @@ def updateJSON(indir, toml_file):
     channelnames_file = os.path.join(indir, 'channelnames.txt')
     exposuretimes_file = os.path.join(indir, 'exposure_times.txt')
     expjson_file = os.path.join(indir, 'experiment.json')
-    assert os.path.isfile(expjson_file)
+    if os.path.isfile(expjson_file):
+        os.rename(expjson_file, os.path.join(indir, 'experiment_bkup.json'))
     
     json_dict = {}
     json_dict['version'] = 'CRISP'
@@ -85,8 +86,6 @@ def updateJSON(indir, toml_file):
     json_dict['driftCompReference'] = 0
     json_dict['best_focus_channel'] = 1
     json_dict['bgsub'] = bool(CRISPtoml['background_subtraction'])
-    
-    os.rename(expjson_file, os.path.join(indir, 'experiment_bkup.json'))
     
     with open(expjson_file, 'w') as json_file:
         json.dump(json_dict, json_file, indent = 4)
