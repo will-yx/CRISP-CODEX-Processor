@@ -6,3 +6,6 @@ max_threads_dicing=8
 #####################
 ADJUST MAX THREADS USED FOR PARALLELIZATION
 parallelization is limited by GPU memory; defaults have been adjusted for an 11GB card
+
+Rough estimates for memory use per thread
+  max deconvolution memory usage: image size(w*h*z)*fft_padding(~8)*2*4 GiB
