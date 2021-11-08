@@ -72,10 +72,9 @@ if os.name=='nt':
   libc = cdll.msvcrt
   CRISP_path = os.path.join(os.getcwd(),'CRISP.dll')
   if os.path.isfile(CRISP_path):
-    for p in os.getenv('Path').split(';'):
-      if p in ['','.']:
-        continue
-      elif os.path.isdir(p): os.add_dll_directory(p)
+    if hasattr(os, 'add_dll_directory'):
+      for p in os.getenv('PATH').split(';'):
+        if p not in ['','.'] and os.path.isdir(p): os.add_dll_directory(p)
     libCRISP = CDLL(CRISP_path)
   else: print('Unable to find CRISP.dll')
 else:
