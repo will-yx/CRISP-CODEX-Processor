@@ -30,7 +30,7 @@ else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap
+c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap_lowmem
 c_driftcomp_3d.restype = c_float
 c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
 
