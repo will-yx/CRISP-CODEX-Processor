@@ -20,17 +20,16 @@ if os.name=='nt':
   libc = cdll.msvcrt
   CRISP_path = os.path.join(os.getcwd(),'CRISP.dll')
   if os.path.isfile(CRISP_path):
-    for p in os.getenv('Path').split(';'):
-      if p in ['','.']:
-        continue
-      elif os.path.isdir(p): os.add_dll_directory(p)
+    if hasattr(os, 'add_dll_directory'):
+      for p in os.getenv('PATH').split(';'):
+        if p not in ['','.'] and os.path.isdir(p): os.add_dll_directory(p)
     libCRISP = CDLL(CRISP_path)
   else: print('Unable to find CRISP.dll')
 else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap
+c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap_lowmem
 c_driftcomp_3d.restype = c_float
 c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
 

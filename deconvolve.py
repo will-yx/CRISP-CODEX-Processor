@@ -52,7 +52,7 @@ class deconvolution_params(Structure):
               ('subtract_low_global', c_bool),
               ('subtract_low_value', c_float),
               ('conserve_intensity', c_bool),
-              ('denoise_residual', c_bool),
+              ('denoise_residual', c_float),
               ('L_TM_obj', c_float), ('L_TV_obj', c_float), ('B_TV_obj', c_float),
               ('L_TM_psf', c_float), ('L_TV_psf', c_float), ('B_TV_psf', c_float),
               ('host_obj_init', c_bool),
@@ -72,10 +72,9 @@ if os.name=='nt':
   libc = cdll.msvcrt
   CRISP_path = os.path.join(os.getcwd(),'CRISP.dll')
   if os.path.isfile(CRISP_path):
-    for p in os.getenv('Path').split(';'):
-      if p in ['','.']:
-        continue
-      elif os.path.isdir(p): os.add_dll_directory(p)
+    if hasattr(os, 'add_dll_directory'):
+      for p in os.getenv('PATH').split(';'):
+        if p not in ['','.'] and os.path.isdir(p): os.add_dll_directory(p)
     libCRISP = CDLL(CRISP_path)
   else: print('Unable to find CRISP.dll')
 else:
@@ -115,7 +114,7 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
   nz, ny, nx, w, h = dims
   z_psf = nz if p_psf.extend_psf else (nz - p_psf.zpad)
   p_psf.lambdaEM = wavelength[0]
-  p_psf.fwhmEM = wavelength[1]
+  p_psf.fwhmEM = wavelength[1] * 0
   out.put('{}> generating PSF for wavelength: {:.0f}nm'.format(tid, p_psf.lambdaEM * 1e3))
   out.put('{}> generating PSF of size {} x {} x {}'.format(tid, z_psf, ny, nx))
   #c_psf = c_generate_psf_vectorial(tid, w, h, nx, ny, nz, pointer(p_psf))
@@ -446,7 +445,7 @@ def load_config(indir):
   p_RL.host_obj_init = config['deconvolution'].get('host_obj_init') or 0
   p_RL.dering_object = config['padding']['dering_object']
   p_RL.zpad = p_psf.zpad
-  p_RL.zout = config['padding']['zout']
+  p_RL.zout = config['padding']['zout'] or z
   p_RL.zmin_project_alpha = config['padding'].get('zmin_project_alpha') or 0
   
   p_RL.ztrim1 = config['padding']['ztrim1']
