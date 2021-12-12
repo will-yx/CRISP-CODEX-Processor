@@ -99,7 +99,7 @@ class MainWindow(Tk):
     option3.setall()
     
     ttk.Label(self.frame, text="Step 4: Register and stitch").grid(column=1, row=12, sticky=(E), pady=(0, 0))
-    option4 = Checkbar(self.frame, ['Register and Stitch'])
+    option4 = Checkbar(self.frame, ['Register','Stitch'])
     option4.grid(column=2, row=12, sticky=W, columnspan=2, pady=(0, 0))
     option4.setall()
     
@@ -230,6 +230,7 @@ class MainWindow(Tk):
     if options[3][0] == 1:
       print('Registering image positions:')
       CRISP_register(decondir, stitchdir)
+    if options[3][1] == 1:
       print('Stitching montages:')
       CRISP_stitch(decondir, stitchdir)
       print("Copying stitched images to '{}'".format(finaldir))

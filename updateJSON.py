@@ -8,7 +8,7 @@ def updateJSON(indir, toml_file):
     channelnames_file = os.path.join(indir, 'channelnames.txt')
     exposuretimes_file = os.path.join(indir, 'exposure_times.txt')
     expjson_file = os.path.join(indir, 'experiment.json')
-    if os.path.isfile(expjson_file):
+    if os.path.isfile(expjson_file) and not os.path.isfile(os.path.join(indir, 'experiment_bkup.json')):
         os.rename(expjson_file, os.path.join(indir, 'experiment_bkup.json'))
     
     json_dict = {}
