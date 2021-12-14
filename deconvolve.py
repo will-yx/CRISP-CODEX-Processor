@@ -403,9 +403,10 @@ def load_config(indir):
     p_psf.accuracy  = config['vectorial']['accuracy']
     p_psf.tolerance = config['vectorial']['tolerance']
   
-  p_psf.extend_psf = config['padding']['extend_psf']
-  p_psf.center_psf = config['padding']['center_psf']
-  p_psf.zshift_psf = config['padding']['zshift_psf']
+  p_psf.extend_psf = config['padding'].get('extend_psf', False)
+  p_psf.center_psf = config['padding'].get('center_psf', True)
+  p_psf.zshift_psf = config['padding'].get('zshift_psf', 0)
+  
   p_psf.blind = config['deconvolution'].get('blind') or False
   p_psf.zpad = c_kernelsize_cufft(int(round(z + z * config['padding']['zpad_min'])), int(round(z + z * config['padding']['zpad_max']))) - z
   
@@ -418,8 +419,8 @@ def load_config(indir):
   p_RL.ny = c_kernelsize_cufft(int(round(h*1.05)), int(round(h*1.5)))
   p_RL.nz = z + p_psf.zpad
   
-  p_RL.correct_darkfield = config['correction'].get('correct_darkfield') or False
-  p_RL.correct_flatfield = config['correction'].get('correct_flatfield') or False
+  p_RL.correct_darkfield = config['correction'].get('correct_darkfield', False)
+  p_RL.correct_flatfield = config['correction'].get('correct_flatfield', False)
   
   dark = config['correction']['darkfield_images'] if p_RL.correct_darkfield else ''
   flat = config['correction']['flatfield_images'] if p_RL.correct_flatfield else ''
@@ -431,36 +432,42 @@ def load_config(indir):
   if len(flat) != len(channels): raise('Wrong number of flatfield images were given!') 
   
   p_RL.iterations = config['deconvolution']['iterations']
-  p_RL.blind = config['deconvolution'].get('blind') or False
-  p_RL.psf_update_interval = config['deconvolution'].get('psf_update_interval') or 1
+  p_RL.blind = config['deconvolution'].get('blind', False)
+  p_RL.psf_update_interval = config['deconvolution'].get('psf_update_interval', 1)
   
-  p_RL.denoise_residual = config['deconvolution'].get('denoise_residual') or 0
-  p_RL.L_TM_obj = config['deconvolution'].get('L_TM_obj') or 0
-  p_RL.L_TV_obj = config['deconvolution'].get('L_TV_obj') or 0
-  p_RL.B_TV_obj = config['deconvolution'].get('B_TV_obj') or 0
-  p_RL.L_TM_psf = config['deconvolution'].get('L_TM_psf') or 0
-  p_RL.L_TV_psf = config['deconvolution'].get('L_TV_psf') or 0
-  p_RL.B_TV_psf = config['deconvolution'].get('B_TV_psf') or 0
+  p_RL.denoise_residual = config['deconvolution'].get('denoise_residual', 0) 
+  p_RL.L_TM_obj = config['deconvolution'].get('L_TM_obj', 0)
+  p_RL.L_TV_obj = config['deconvolution'].get('L_TV_obj', 0)
+  p_RL.B_TV_obj = config['deconvolution'].get('B_TV_obj', 0)
+  p_RL.L_TM_psf = config['deconvolution'].get('L_TM_psf', 0)
+  p_RL.L_TV_psf = config['deconvolution'].get('L_TV_psf', 0)
+  p_RL.B_TV_psf = config['deconvolution'].get('B_TV_psf', 0)
   
-  p_RL.host_obj_init = config['deconvolution'].get('host_obj_init') or 0
-  p_RL.dering_object = config['padding']['dering_object']
+  p_RL.host_obj_init = config['deconvolution'].get('host_obj_init', False)
+  p_RL.dering_object = config['padding'].get('dering_object', -2)
   p_RL.zpad = p_psf.zpad
   p_RL.zout = config['padding']['zout'] or z
-  p_RL.zmin_project_alpha = config['padding'].get('zmin_project_alpha') or 0
+  p_RL.zmin_project_alpha = config['padding'].get('zmin_project_alpha', 0)
   
   p_RL.ztrim1 = config['padding']['ztrim1']
   p_RL.ztrim2 = config['padding']['ztrim2']
   p_RL.zshift = 0
-  
-  p_RL.edf  = config['extended_depth_of_field']['enabled']
-  p_RL.save_zstack = config['extended_depth_of_field']['save_zstack']
-  p_RL.subband_filter = config['extended_depth_of_field'].get('subband_filter') or False
-  p_RL.majority_filter = config['extended_depth_of_field'].get('majority_filter') or False
-  p_RL.edf_clamp = config['extended_depth_of_field'].get('clamp_values') or False
+
+  if p_RL.z != p_RL.zout + p_RL.ztrim1 + p_RL.ztrim2:
+    raise ValueError('Error: Number of input z slices is not the sum of output plus trimmed slices!') 
+
+  p_RL.edf = True
+  p_RL.save_zstack = True
+  if config.get('extended_depth_of_field'):
+    p_RL.edf  = config['extended_depth_of_field'].get('enabled', True)
+    p_RL.save_zstack = config['extended_depth_of_field'].get('save_zstack', True)
+    p_RL.subband_filter = config['extended_depth_of_field'].get('subband_filter', False)
+    p_RL.majority_filter = config['extended_depth_of_field'].get('majority_filter', False)
+    p_RL.edf_clamp = config['extended_depth_of_field'].get('clamp_values', False)
   
   if config.get('dynamic_range_compression'):
-    p_RL.drc0 = config['dynamic_range_compression'].get('drc0') or 0
-    p_RL.drc1 = config['dynamic_range_compression'].get('drc1') or 0
+    p_RL.drc0 = config['dynamic_range_compression'].get('drc0', 0)
+    p_RL.drc1 = config['dynamic_range_compression'].get('drc1', 0)
   
   if(config.get('chromatic_aberration_correction') and config['chromatic_aberration_correction']['enabled']):
     p_RL.aw = config['chromatic_aberration_correction']['width']
@@ -471,14 +478,14 @@ def load_config(indir):
   else:
     ca_xy = None
   
-  if config['padding']['frame_zshift']:
+  if config['padding'].get('frame_zshift', True):
     zshifts = {}
     for r in range(1,1+regions):
       zshiftsfile = os.path.join(indir, 'driftcomp', 'region{:02d}_zshifts.bin'.format(r))
       zshifts[r] = np.fromfile(zshiftsfile, dtype=np.float32).reshape(cycles, positions)
   else: zshifts = None
   
-  if config['padding']['tiled_zshift']:
+  if config['padding'].get('tiled_zshift', True):
     tzshifts = {}
     tx = (w + 256//4 + 256-1) // 256
     ty = (h + 256//4 + 256-1) // 256
