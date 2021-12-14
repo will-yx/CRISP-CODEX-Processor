@@ -11,7 +11,7 @@ Windows 10 or Windows Server 2016+ (64-bit)
 
 **Installation**
 Software Requirements
-CUDA 10.2
+CUDA 11.2
 https://developer.nvidia.com/cuda-toolkit-archive
 
 vips 8.10.1
@@ -114,6 +114,7 @@ Cycle	CH1	CH2	CH3	CH4
 	Run CRISP_CODEX_nolog.bat
 	Select input, output, and scratch drive folders
 	Create and edit the config file
+	*If reprocessing or re-starting after an error, uncheck steps that already successfully completed*
 	Click "Start..."
 	
 2. In jupyter notebook: 
@@ -152,6 +153,11 @@ To generate flatfield images:
 - significant uneven illumination after this step may require preprocessing such as rolling circle background subtraction prior to processing
 
 Release notes:
+v0.6
+-recompiled with CUDA 11.2
+-updated DLL loading for Python 3.7+
+-added step to update experiment.json files to be compatible with Akoya MAV
+-fixed an error with background subtraction using early and late cycles to account for photobleaching
 v0.5.2
 -changed TIFF compression from LZW to deflate
 -added temp file to load previous settings
