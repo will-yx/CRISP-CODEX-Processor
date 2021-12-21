@@ -12,6 +12,8 @@ from timeit import default_timer as timer
 import humanfriendly
 from PyCaffeinate import PyCaffeinate
 
+import toml
+
 
 class NoDaemonProcess(mp.Process):
   @property
@@ -56,12 +58,12 @@ def free_libs(libs):
     del lib
   
 def dice_mosaic(tid, job, indir, outdir, gx, gy, border, slice_offset):
-  reg, cyc, ch, sl = job
+  reg, cy, ch, sl = job
   
   c_indir = c_char_p(indir.encode('ascii'))
   c_outdir = c_char_p(outdir.encode('ascii'))
   
-  status = c_dice_mosaic(c_indir, c_outdir, reg, cyc, ch, sl, slice_offset, gx, gy, border[0], border[1])
+  status = c_dice_mosaic(c_indir, c_outdir, reg, cy, ch, sl, slice_offset, gx, gy, border[0], border[1])
   
   return status
 
@@ -170,9 +172,9 @@ def main(indir, outdir, config, max_threads=4):
   zout = config['padding']['zout']
   gx   = config['dimensions']['gx']
   gy   = config['dimensions']['gy']
-  nc = len(config['microscope']['channelNames'])
-  ncy  = config['dimensions']['cycles']
   nreg = config['dimensions']['regions']
+  ncy  = config['dimensions']['cycles']
+  nch  = len(config['microscope']['channelNames'])
   
   ztrim = 2
   
@@ -182,9 +184,9 @@ def main(indir, outdir, config, max_threads=4):
   z2 = zregister + (nzout >> 1)
   slices = set(range(z1, z2+1))
   
-  channels = {ch+1 for ch in range(nc)}
-  cycles = {cy+1 for cy in range(ncy)}
-  regions = {reg+1 for reg in range(nreg)}
+  regions  = {reg+1 for reg in range(nreg)}
+  cycles   = {-ncy} # process all cycles at once   # {cy+1 for cy in range(ncy)}
+  channels = {-nch} # process all channels at once # {ch+1 for ch in range(nch)}
   
   slice_offset = -ztrim if zout > 8 else 0 # input slice 3 becomes output slice 1
   
@@ -196,9 +198,13 @@ def main(indir, outdir, config, max_threads=4):
 if __name__ == '__main__':
   pyCaffeinate = PyCaffeinate()
   pyCaffeinate.preventSleep()
+
+  stitchdir = 'N:/CODEX processed/20211209_VEGF_regen_run2/stitched'
+  finaldir = 'N:/CODEX processed/20211209_VEGF_regen_run2'
+  config = toml.load(os.path.join(finaldir, 'CRISP_config.toml')) 
   
   t0 = timer()
-  main()
+  main(stitchdir, finaldir, config, max_threads=8)
   free_libs([libCRISP, libc])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
