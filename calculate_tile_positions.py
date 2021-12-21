@@ -186,7 +186,9 @@ def calculate_tile_alignment(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, 
       mask[wt < wt_cutoff] = 1
 
       print('Valid Points:')
-      print(1 - mask)
+      print()
+      print(np.array_str(1 - mask).replace('0',' ').replace('1','#'))
+      print()
       
       np.putmask(dx, mask, np.outer(np.ones(ncy, dtype=np.float32), dx_))
       np.putmask(dy, mask, np.outer(np.ones(ncy, dtype=np.float32), dy_))
