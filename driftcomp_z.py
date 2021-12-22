@@ -29,9 +29,10 @@ else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap_lowmem
+c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap
 c_driftcomp_3d.restype = c_float
 c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
+
 
 def free_libs(libs):
   for lib in libs:
@@ -57,14 +58,14 @@ def driftcomp(out, tid, job, dims, params, indir, dark, flat):
 def process_jobs(args):
   t0 = timer()
   out, tid, indir, dims, params, dark, flat, jobs = args
-
+  
   if dark: dark = cstr(dark)
   if flat: flat = cstr(flat)
   
   process = mp.current_process()
   out.put('{}> pid {:5d} got job list {}'.format(tid, process.pid, jobs), False)
   
-  sleep(tid * 30)
+  sleep(tid * 20)
   
   for job in jobs:
     for attempts in reversed(range(3)):
@@ -207,7 +208,7 @@ def check_files(indir):
   
   return d_in, channels, cycles, regions, positions, z, h, w
 
-def main(indir=None, max_threads=1):
+def main(indir=None, max_threads=2):
   if not indir or not os.path.isdir(indir):
     print("Error: '{}' is not a valid directory".format(indir))
     return
