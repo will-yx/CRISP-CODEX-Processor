@@ -55,25 +55,25 @@ def align_edges(out, tid, job, dims, indir, dark, flat):
 def process_jobs(args):
   t0 = timer()
   out, tid, indir, dims, dark, flat, jobs = args
-
+  
   if dark: dark = cstr(dark)
   if flat: flat = cstr(flat)
   
   process = mp.current_process()
   out.put('{}> pid {:5d} got job list {}'.format(tid, process.pid, jobs), False)
   
-  sleep(tid * 60)
-  
+  sleep(tid * 30)
   for job in jobs:
     for attempts in reversed(range(3)):
       out.put('{}> processing job {}'.format(tid, job), False)
       
       status = align_edges(out, tid, job, dims, indir, dark, flat)
       
-      if status == 0: break
+      if  status == 0: break
       if attempts > 0: sleep(30)
      
     out.put((status, tid, job), False)
+  
     if status: break
   
   t1 = timer()
@@ -211,15 +211,15 @@ def main(indir=None, max_threads=1):
     return
   
   d_in, channels, cycles, regions, positions, z, h, w = check_files(indir)
-
+  
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
-
+  
   ox = config['dimensions']['overlap_x']
   oy = config['dimensions']['overlap_y']
   
   gx = config['dimensions']['gx']
   gy = config['dimensions']['gy']
-
+  
   if config['correction']['correct_darkfield']:
     dark = config['correction']['darkfield_images']
     if isinstance(dark, list): dark = dark[0]
