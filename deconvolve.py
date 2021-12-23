@@ -124,14 +124,15 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
 def deconvolve_imagestack(out, tid, job, d_in, d_out, p_RL, c_psf, c_tzshifts, dark, flat):
   t0 = timer()
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
-  cyc, ch, reg, pos = job
+  cy, ch, reg, pos = job
   
-  key = 'c{}_r{}'.format(cyc,reg)
+  key = 'c{}_r{}'.format(cy, reg)
 
   indir = cstr(d_in[key])
   outdir = cstr(d_out[key])
-  inpattern = cstr('{region}_{position:05d}_Z*_CH{channel:d}.tif'.format(position=pos, channel=ch, region=reg, cycle=cyc))
-  outpattern = cstr('{region}_{position:05d}_Z%%03d_CH{channel:d}.tif'.format(region=reg, position=pos, channel=ch, cycle=cyc))
+  #inpattern = cstr('{region}_{position:05d}_Z*_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
+  inpattern = cstr('{region}_{position:05d}_Z%03d_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
+  outpattern = cstr('{region}_{position:05d}_Z%%03d_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
   
   status = c_process_imagestack(p_RL, indir, outdir, inpattern, outpattern, dark, flat, nx, ny, nz, reg, pos, ch, c_psf, c_tzshifts, tid)
   
@@ -157,7 +158,7 @@ def process_jobs(args):
   for job in jobs:
     for attempts in reversed(range(3)):
       out.put('{}> processing job {}'.format(tid, job))
-      cyc, ch, reg, pos = job
+      cy, ch, reg, pos = job
       if ch != psf_ch or p_RL.blind:
         psf_ch = ch
         c_psf = generate_psf(out, tid, (p_RL.nz, p_RL.ny, p_RL.nx, p_RL.w, p_RL.h), p_psf, wavelengths[ch])
@@ -166,9 +167,9 @@ def process_jobs(args):
       p_RL.ay = ca_xy[ch][1] if ca_xy else 0
       
       if zshifts:
-        p_RL.zshift = zshifts[reg][cyc-1, pos-1] + cdz[ch]
+        p_RL.zshift = zshifts[reg][cy-1, pos-1] + cdz[ch]
       if tzshifts:
-        c_tzshifts = np.ascontiguousarray(tzshifts[reg][cyc-1, pos-1] + cdz[ch], dtype=np.float32).ctypes.data_as(POINTER(c_float))
+        c_tzshifts = np.ascontiguousarray(tzshifts[reg][cy-1, pos-1] + cdz[ch], dtype=np.float32).ctypes.data_as(POINTER(c_float))
 
       if dark: darkfile = cstr(dark[ch])
       if flat: flatfile = cstr(flat[ch])

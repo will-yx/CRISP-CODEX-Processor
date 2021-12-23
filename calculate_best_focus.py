@@ -314,7 +314,7 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
         ax.set_zlabel('Z Axis')
         ax.set_zlim(0, z-1)
     
-    target_z = (z-2 + (z&1)) / 2 - 0.5 # shift center by a half slice because there seems to be a consistent bias
+    target_z = (z-2 + (z&1)) / 2 - 0.25 # shift center by a quarter slice because there seems to be a consistent bias
     print(' slices: {}, middle: {}, target: {}'.format(z, (z-1)/2, target_z))
     
     raw_var_sum = 0
@@ -410,7 +410,8 @@ if __name__ == '__main__':
   #dirs.append('N:/CODEX raw/Mouse Sk Muscle/20190802_run12_preveh')
   #dirs.append('N:/CODEX raw/Mouse Sk Muscle/20200130_run22_long_preveh')
   #dirs.append('N:/Colin/codex_training_nov_19')
-  dirs.append('N:/CODEX raw/Human Muscle/20200622_human_run07_MTJ_E')
+  #dirs.append('N:/CODEX raw/Human Muscle/20200622_human_run07_MTJ_E')
+  dirs.append('N:/CODEX raw/Mouse Sk Muscle/20211209_VEGF_regen_run2')
   main(dirs, show=True)
 
 free_libs([libCRISP, libc])
