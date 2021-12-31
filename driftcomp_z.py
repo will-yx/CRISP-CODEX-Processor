@@ -29,9 +29,9 @@ else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap
+c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap_focus
 c_driftcomp_3d.restype = c_float
-c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
+c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
 
 
 def free_libs(libs):
@@ -50,8 +50,10 @@ def driftcomp(out, tid, job, dims, params, indir, dark, flat):
   c_indir = c_char_p(indir.encode('ascii'))
   
   mode = 1 # 0 or 1
+
+  rc =  params['reference_channel']
   
-  status = c_driftcomp_3d(c_indir, reg, pos, ncy, nz, dark, flat, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'])
+  status = c_driftcomp_3d(c_indir, reg, pos, ncy, nz, dark, flat, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], params['p1'], params['p2'])
   
   return status
 
@@ -169,64 +171,46 @@ def check_files(indir):
 
   if not os.path.exists(os.path.join(indir, 'driftcomp')): os.mkdir(os.path.join(indir, 'driftcomp'))
   
-  cycles = set()
-  regions = set()
-  positions = set()
-  slices = set()
-  channels = set()
-
   d_in = {}
   pattern1 = re.compile('cyc(\d+)_reg(\d+)')
   for f in folders_in:
     m = pattern1.match(f)
     cyc = int(m.groups()[0])
     reg = int(m.groups()[1])
-    cycles.add(cyc)
-    regions.add(reg)
     key = 'c{}_r{}'.format(cyc,reg)
     d_in[key] = os.path.join(indir, f)
   
-  imagelist = glob.glob(os.path.join(indir,folders_in[0],'*_*_Z*_CH*.tif'))
-  
-  pattern2 = re.compile('.*_(\d+)_Z(\d+)_CH(\d).tif')
-  for f in imagelist:
-    m = pattern2.match(f)  
-    positions.add(int(m.groups()[0]))
-    slices.add(int(m.groups()[1]))
-    channels.add(int(m.groups()[2]))
-  
-  img = io.imread(os.path.join(indir, folders_in[0], imagelist[0]))
-  h, w = img.shape
-  z = len(slices)
-  
-  print('channels:\t', channels)
-  print('cycles: \t', cycles)
-  print('regions:\t', regions)
-  print('positions:\t', positions)
-  print('slices:\t', z)
-  print()
-  
-  return d_in, channels, cycles, regions, positions, z, h, w
+  return d_in
 
 def main(indir=None, max_threads=2):
   if not indir or not os.path.isdir(indir):
     print("Error: '{}' is not a valid directory".format(indir))
     return
   
-  d_in, channels, cycles, regions, positions, z, h, w = check_files(indir)
+  d_in = check_files(indir)
   
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
+
+  w = config['dimensions']['width']
+  h = config['dimensions']['height']
+  z = config['dimensions']['slices']
+
+  regions   = {reg+1 for reg in range(config['dimensions']['regions'])}
+  positions = {pos+1 for pos in range(config['dimensions']['gx']*config['dimensions']['gy'])}
+  cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
+  channels  = set(config['microscope']['wavelengthEM'].keys())
+  reference_channel = config['microscope'].get('reference_channel', 1)
   
   if config['correction']['correct_darkfield']:
     dark = config['correction']['darkfield_images']
-    if isinstance(dark, list): dark = dark[0]
+    if isinstance(dark, list): dark = dark[reference_channel-1]
     dark = os.path.join(indir, dark)
   else:
     dark = None
   
   if config['correction']['correct_flatfield']:
     flat = config['correction']['flatfield_images']
-    if isinstance(flat, list): flat = flat[0]
+    if isinstance(flat, list): flat = flat[reference_channel-1]
     flat = os.path.join(indir, flat)
   else:
     flat = None
@@ -248,11 +232,11 @@ def main(indir=None, max_threads=2):
       np.full(max(positions)*ty*tx*max(cycles)*z, np.nan, dtype=np.float32).tofile(ztilefile)
   
   jobs = list(itertools.product(regions, positions))
-  params = {'a1': 0.5, 'a2': 0.5, 'a3': 0.5, 'a4': 0.5, 'h1': 8.0, 'h2': 0.75, 'h3': 0.3, 'h4': 0.3, 'h5': 0.9}
+  params = {'reference_channel': reference_channel, 'a1': 0.5, 'a2': 0.5, 'a3': 0.5, 'a4': 0.5, 'h1': 8.0, 'h2': 0.75, 'h3': 0.3, 'h4': 0.3, 'h5': 0.9, 'p1': 1.5, 'p2': 2.0}
   
   dispatch_jobs(indir, jobs, (len(cycles), z), params, dark, flat, max_threads)
   print("Completed processing '{}'".format(indir))
-
+  
 if __name__ == '__main__':
   pyCaffeinate = PyCaffeinate()
   pyCaffeinate.preventSleep()
