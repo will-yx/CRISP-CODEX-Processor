@@ -30,7 +30,7 @@ else:
 
 edge_alignment_3d = libCRISP.edge_alignment_3d
 edge_alignment_3d.restype = c_float
-edge_alignment_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_int, c_float, c_float, c_char_p, c_char_p, c_int, c_int]
+edge_alignment_3d.argtypes = [c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_bool, c_int, c_int, c_int, c_float, c_float, c_char_p, c_char_p, c_int, c_int]
 
 def free_libs(libs):
   for lib in libs:
@@ -52,11 +52,13 @@ def align_edges(out, tid, job, dims, p):
   if dark: dark = cstr(os.path.join(p['indir'], dark[ch-1]))
   if flat: flat = cstr(os.path.join(p['indir'], flat[ch-1]))
   
-  status = edge_alignment_3d(cstr(indir), reg, cyc, gx, gy, nz, ox, oy, dark, flat, tid, mode)
   indir = cstr(p['indir'])
+  
+  inpattern = None # todo: inpattern formatting for CODEX format
   
   mode = 1 # 0 or 1
 
+  status = edge_alignment_3d(indir, inpattern, reg, cy, ch, nc, snake, gx, gy, nz, ox, oy, dark, flat, tid, mode)
   
   return status
 
@@ -230,7 +232,7 @@ def main(indir=None, max_threads=1):
     if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) < num_entries*4:
       np.full(num_entries, np.nan, dtype=np.float32).tofile(offsetfile)
   
-  jobs = list(itertools.product(regions, cycles))
+  jobs = list(itertools.product(regions, cycles, channels))
 
   params = {'indir': indir, 'inpattern': inpattern, 'snake': snake, 'dark': dark, 'flat': flat}
   
