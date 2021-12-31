@@ -34,7 +34,9 @@ def free_libs(libs):
     else: lib.dlclose(lib._handle)
     del lib
 
-def reorder_serpentine(data):
+def reorder_serpentine(data, serpentine=True):
+  if not serpentine: return data
+  
   gy, gx, *_ = data.shape
   for j in range(gy):
     if j%2: # odd rows need to be reversed
@@ -67,7 +69,7 @@ def find_peak(zscores):
   return c_findpeaks1(zscores.ctypes.data_as(POINTER(c_float)), len(zscores))
 
 
-def force_converge(dpH, wtH, dpV, wtV, miniter=1000, maxiter=100000):
+def force_converge(ax, dpH, wtH, dpV, wtV, miniter=1000, maxiter=100000):
   if np.any(np.isnan(dpH)): print("Error: NaN value encountered in dpH");
   if np.any(np.isnan(wtH)): print("Error: NaN value encountered in wtH");
   if np.any(np.isnan(dpV)): print("Error: NaN value encountered in dpV");
@@ -86,7 +88,7 @@ def force_converge(dpH, wtH, dpV, wtV, miniter=1000, maxiter=100000):
     F = np.zeros_like(wtH)
     for j in range(gy):
       for i in range(gx):
-        divisor = 0.1
+        divisor = 1e-6
         
         if i>0:
           F[j,i] += (dpH[j,i] - (p[j,i]-p[j,i-1])) * wtH[j,i]
@@ -118,44 +120,54 @@ def force_converge(dpH, wtH, dpV, wtV, miniter=1000, maxiter=100000):
   
   p_ = np.ma.average(p, weights=(wtH+wtV), axis=None)
   p -= p_
-  print('p_: {:.4f}'.format(p_))
+  print('p{}_: {:+6.2f}'.format(ax, p_))
   
-  print(' p:')
-  for row in p: print(''.join(['  {:+.1f}'.format(v) for v in row]))
+  print(' p{}:'.format(ax))
+  for row in p: print(''.join(['  {:+5.1f}'.format(v) for v in row]))
   
   return p
   
 
-def calculate_tile_alignment(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33, ox=0.3, oy=0.3, show=0):
+def calculate_tile_alignment(indir, nreg=5, ncy=18, channels=[1], gx=5, gy=7, w=1920, h=1440, z=33, ox=0.3, oy=0.3, serpentine=True, show=0):
   npos = gy*gx
+  nch = len(channels)
   
   for r in range(1,1+nreg):
     offsetfile = os.path.join(indir, 'region{:02d}_edge_alignments.bin'.format(r))
     if not os.path.isfile(offsetfile): continue
     
     offsets = np.fromfile(offsetfile, dtype=np.float32)
-    offsets = offsets.reshape((ncy, 2, 4, gy, gx))
-    dxHs = offsets[:,0,0,:,:]
-    dyHs = offsets[:,0,1,:,:]
-    dzHs = offsets[:,0,2,:,:]
-    wtHs = offsets[:,0,3,:,:]
+    offsets = offsets.reshape((ncy, max(channels), 2, 4, gy, gx))
+    offsets = offsets[:,[c-1 for c in channels],:,:,:,:] # keep only the alignment channels
+    
+    dxHs = offsets[:,:,0,0,:,:]
+    dyHs = offsets[:,:,0,1,:,:]
+    dzHs = offsets[:,:,0,2,:,:]
+    wtHs = offsets[:,:,0,3,:,:]
 
-    dxVs = offsets[:,1,0,:,:]
-    dyVs = offsets[:,1,1,:,:]
-    dzVs = offsets[:,1,2,:,:]
-    wtVs = offsets[:,1,3,:,:]
+    dxVs = offsets[:,:,1,0,:,:]
+    dyVs = offsets[:,:,1,1,:,:]
+    dzVs = offsets[:,:,1,2,:,:]
+    wtVs = offsets[:,:,1,3,:,:]
     
     if np.any(np.isnan(offsets)):
       print("Error: NaN value encountered in '{}'".format(offsetfile));
       return 1
 
     def filter_dxyzs(dx, dy, dz, wt):
-      dims = dx.shape
-      dx = dx.reshape(ncy,npos)
-      dy = dy.reshape(ncy,npos)
-      dz = dz.reshape(ncy,npos)
-      wt = wt.reshape(ncy,npos)
+      dx = dx.reshape(ncy,nch,npos)
+      dy = dy.reshape(ncy,nch,npos)
+      dz = dz.reshape(ncy,nch,npos)
+      wt = wt.reshape(ncy,nch,npos)
       
+      # compute weighted average across all channels
+      ws = np.maximum(wt, 0) + 1e-12
+      dx = np.average(dx, weights=ws, axis=1)
+      dy = np.average(dy, weights=ws, axis=1)
+      dz = np.average(dz, weights=ws, axis=1)
+      wt = np.nanmean(wt, axis=1)
+      
+      #compute weighted average across all cycles
       dx_ = np.ma.average(dx, weights=wt, axis=0)
       dy_ = np.ma.average(dy, weights=wt, axis=0)
       dz_ = np.ma.average(dz, weights=wt, axis=0)
@@ -181,7 +193,7 @@ def calculate_tile_alignment(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, 
       
       mask[np.abs(dx) > 40] = 1
       mask[np.abs(dy) > 40] = 1
-      mask[np.abs(dz) > 5]  = 1
+      mask[np.abs(dz) >  5] = 1
       
       mask[wt < wt_cutoff] = 1
 
@@ -205,7 +217,8 @@ def calculate_tile_alignment(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, 
         print()
         for row in wt[cy].reshape(gy,gx): print(''.join(['  {:+.1e}'.format(v*10000) for v in row]))
         print()
-      
+
+      dims = (ncy, gy, gx)
       return dx.reshape(dims), dy.reshape(dims), dz.reshape(dims), wt.reshape(dims)
     
     dxHs, dyHs, dzHs, wtHs = filter_dxyzs(dxHs, dyHs, dzHs, wtHs)
@@ -216,10 +229,10 @@ def calculate_tile_alignment(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, 
     pz = np.empty((gy,gx,ncy), dtype=np.float32)
     for cy in range(ncy):
       print('\nCycle {:02d}'.format(cy+1))
-      px[:,:,cy] = reorder_serpentine(force_converge(dxHs[cy], wtHs[cy], dxVs[cy], wtVs[cy]))
-      py[:,:,cy] = reorder_serpentine(force_converge(dyHs[cy], wtHs[cy], dyVs[cy], wtVs[cy]))
-      pz[:,:,cy] = reorder_serpentine(force_converge(dzHs[cy], wtHs[cy], dzVs[cy], wtVs[cy]))
-
+      px[:,:,cy] = reorder_serpentine(force_converge('x', dxHs[cy], wtHs[cy], dxVs[cy], wtVs[cy]), serpentine)
+      py[:,:,cy] = reorder_serpentine(force_converge('y', dyHs[cy], wtHs[cy], dyVs[cy], wtVs[cy]), serpentine)
+      pz[:,:,cy] = reorder_serpentine(force_converge('z', dzHs[cy], wtHs[cy], dzVs[cy], wtVs[cy]), serpentine)
+    
     if np.any(np.isnan(px)) or np.any(np.isnan(py)) or np.any(np.isnan(pz)):
       print('Error: NaN value encountered in output positions');
       return 1
@@ -255,8 +268,11 @@ def main(dirs=[], show=False):
     gy   = config['dimensions']['gy']
     ncy  = config['dimensions']['cycles']
     nreg = config['dimensions']['regions']
+    snake = config['dimensions'].get('snake', True)
+
+    channels = config['microscope'].get('alignment_channels', [1])
     
-    calculate_tile_alignment(indir, nreg, ncy, gx, gy, w, h, z, ox, oy, show=show)
+    calculate_tile_alignment(indir, nreg, ncy, channels, gx, gy, w, h, z, ox, oy, snake, show=show)
 
 if __name__ == '__main__':
   dirs = []
