@@ -4,7 +4,7 @@ from ctypes import *
 from _ctypes import FreeLibrary
 
 import os
-import glob
+from glob import glob
 import shutil
 import re
 import itertools
@@ -32,6 +32,7 @@ class psf_params(Structure):
               ('lambda0', c_float), ('lambdaEM', c_float), ('fwhmEM', c_float),
               ('nbasis', c_int), ('nrho', c_int),
               ('nr', c_int), ('accuracy', c_int), ('tolerance', c_float),
+              ('sigma_xy', c_float), ('sigma_z', c_float),
               ('extend_psf', c_bool),
               ('center_psf', c_bool),
               ('zshift_psf', c_float),
@@ -97,6 +98,10 @@ c_generate_psf_vectorial = libCRISP.generate_psf_vectorial
 c_generate_psf_vectorial.restype = POINTER(c_float)
 c_generate_psf_vectorial.argtypes = [c_int, c_int, c_int, c_int, c_int, c_int, POINTER(psf_params)]
 
+c_generate_psf_gaussian = libCRISP.generate_psf_gaussian
+c_generate_psf_gaussian.restype = POINTER(c_float)
+c_generate_psf_gaussian.argtypes = [c_int, c_int, c_int, c_int, c_int, c_int, POINTER(psf_params)]
+
 c_process_imagestack = libCRISP.process_imagestack
 c_process_imagestack.restype = c_float
 c_process_imagestack.argtypes = [POINTER(deconvolution_params), c_char_p, c_char_p, c_char_p, c_char_p, c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_int, c_int, POINTER(c_float), POINTER(c_float), c_int]
@@ -119,20 +124,30 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
   out.put('{}> generating PSF of size {} x {} x {}'.format(tid, z_psf, ny, nx))
   #c_psf = c_generate_psf_vectorial(tid, w, h, nx, ny, nz, pointer(p_psf))
   c_psf = c_generate_psf_GibsonLanni(tid, w, h, nx, ny, nz, pointer(p_psf))
+  #c_psf = c_generate_psf_gaussian(tid, w, h, nx, ny, nz, pointer(p_psf))
   return c_psf
 
-def deconvolve_imagestack(out, tid, job, d_in, d_out, p_RL, c_psf, c_tzshifts, dark, flat):
+def deconvolve_imagestack(out, tid, job, p, p_RL, c_psf):
   t0 = timer()
+  
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
   cy, ch, reg, pos = job
-  
-  key = 'c{}_r{}'.format(cy, reg)
 
-  indir = cstr(d_in[key])
-  outdir = cstr(d_out[key])
-  #inpattern = cstr('{region}_{position:05d}_Z*_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
-  inpattern = cstr('{region}_{position:05d}_Z%03d_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
-  outpattern = cstr('{region}_{position:05d}_Z%%03d_CH{channel:d}.tif'.format(cycle=cy, region=reg, position=pos, channel=ch))
+  p_RL.ax = p['ca_xy'][ch][0] if p['ca_xy'] else 0
+  p_RL.ay = p['ca_xy'][ch][1] if p['ca_xy'] else 0
+
+  p_RL.zshift = p['zshifts'][reg][cy-1, pos-1] + p['czshifts'][ch] if p['zshifts'] else 0
+  c_tzshifts = np.ascontiguousarray(p['tzshifts'][reg][cy-1, pos-1] + p['czshifts'][ch], dtype=np.float32).ctypes.data_as(POINTER(c_float)) if p['tzshifts'] else None
+
+  key = 'c{}_r{}'.format(cy, reg)
+  indir  = cstr(p['d_in' ][key])
+  outdir = cstr(p['d_out'][key])
+      
+  inpattern  = cstr(p[ 'inpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
+  outpattern = cstr(p['outpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
+  
+  dark = cstr(p['dark'][ch]) if p['dark'] else None
+  flat = cstr(p['flat'][ch]) if p['flat'] else None
   
   status = c_process_imagestack(p_RL, indir, outdir, inpattern, outpattern, dark, flat, nx, ny, nz, reg, pos, ch, c_psf, c_tzshifts, tid)
   
@@ -143,15 +158,15 @@ def deconvolve_imagestack(out, tid, job, d_in, d_out, p_RL, c_psf, c_tzshifts, d
 def process_jobs(args):
   t0 = timer()
   
-  out, tid, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshifts, cdz, ca_xy, dark, flat, jobs = args
-  process = mp.current_process()
-  out.put('{}> pid {:5d} got {} jobs'.format(tid, process.pid, len(jobs)))
+  out, tid, p, jobs = args                             
+  out.put('{}> pid {:5d} got {} jobs'.format(tid, mp.current_process().pid, len(jobs)))
+  
+  # make copies of the ctypes structs to avoid thread conflicts
+  p_psf =           psf_params.from_buffer_copy(p['p_psf'])
+  p_RL  = deconvolution_params.from_buffer_copy(p['p_RL'])
+  
   psf_ch = None
-  c_psf = None
-  p_RL.zshift = 0
-  c_tzshifts = None
-  darkfile = None
-  flatfile = None
+  c_psf  = None
 
   sleep(30 * tid)
   
@@ -161,20 +176,9 @@ def process_jobs(args):
       cy, ch, reg, pos = job
       if ch != psf_ch or p_RL.blind:
         psf_ch = ch
-        c_psf = generate_psf(out, tid, (p_RL.nz, p_RL.ny, p_RL.nx, p_RL.w, p_RL.h), p_psf, wavelengths[ch])
+        c_psf = generate_psf(out, tid, (p_RL.nz, p_RL.ny, p_RL.nx, p_RL.w, p_RL.h), p_psf, p['wavelengths'][ch])
       
-      p_RL.ax = ca_xy[ch][0] if ca_xy else 0
-      p_RL.ay = ca_xy[ch][1] if ca_xy else 0
-      
-      if zshifts:
-        p_RL.zshift = zshifts[reg][cy-1, pos-1] + cdz[ch]
-      if tzshifts:
-        c_tzshifts = np.ascontiguousarray(tzshifts[reg][cy-1, pos-1] + cdz[ch], dtype=np.float32).ctypes.data_as(POINTER(c_float))
-
-      if dark: darkfile = cstr(dark[ch])
-      if flat: flatfile = cstr(flat[ch])
-      
-      status = deconvolve_imagestack(out, tid, job, d_in, d_out, p_RL, c_psf, c_tzshifts, darkfile, flatfile)
+      status = deconvolve_imagestack(out, tid, job, p, p_RL, c_psf)
       
       if status == 0: break
       if attempts > 0: sleep(30)
@@ -189,16 +193,23 @@ def process_jobs(args):
   out.put((100, tid, None))
 
 
-def dispatch_jobs(outdir, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshifts, czshifts, ca_xy, dark, flat, joblist, resume=False, max_threads=1):
-  config_bytes = bytes(p_psf) + bytes(p_RL)
-  config_bytes += bytes(repr(wavelengths).encode('ascii'))
-  config_bytes += bytes(repr(zshifts).encode('ascii'))
-  config_bytes += bytes(repr(tzshifts).encode('ascii'))
-  config_bytes += bytes(repr(czshifts).encode('ascii'))
-  config_bytes += bytes(repr(ca_xy).encode('ascii'))
-  config_bytes += bytes(repr(dark).encode('ascii'))
-  config_bytes += bytes(repr(flat).encode('ascii'))
-  config_hash = binascii.crc32(config_bytes)
+def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
+  if 1:
+    config_hash = binascii.crc32(bytes(repr(params).encode('ascii')))
+    print('\n\nWARNING : RESUME IS BROKEN BECAUSE\np_psf: <__main__.psf_params object at 0x0000019C276EB940>, p_RL: <__main__.deconvolution_params object at 0x0000019C276EB8C0>\n\n')
+    #print(repr(params))
+    #return
+  else:
+    config_bytes = bytes(p_psf) + bytes(p_RL)
+    config_bytes += bytes(repr(wavelengths).encode('ascii'))
+    config_bytes += bytes(repr(zshifts).encode('ascii'))
+    config_bytes += bytes(repr(tzshifts).encode('ascii'))
+    config_bytes += bytes(repr(czshifts).encode('ascii'))
+    config_bytes += bytes(repr(ca_xy).encode('ascii'))
+    config_bytes += bytes(repr(dark).encode('ascii'))
+    config_bytes += bytes(repr(flat).encode('ascii'))
+    config_hash = binascii.crc32(config_bytes)
+  
   
   progress_dict = {}
   progressfile = os.path.join(outdir, 'deconvolution_progress.npz')
@@ -237,7 +248,7 @@ def dispatch_jobs(outdir, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshif
   q = manager.Queue()
   
   with mp.Pool(processes=nt) as p:
-    rs = p.map_async(process_jobs, [(q, j, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshifts, czshifts, ca_xy, dark, flat, jobs) for j,jobs in enumerate(joblist_per_thread)])
+    rs = p.map_async(process_jobs, [(q, j, params, jobs) for j,jobs in enumerate(joblist_per_thread)])
     
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
@@ -320,12 +331,6 @@ def check_files(indir, outdir):
   print(folders_in)
   print()
   
-  cycles = set()
-  regions = set()
-  positions = set()
-  slices = set()
-  channels = set()
-
   d_in = {}
   d_out = {}
   pattern1 = re.compile('cyc(\d+)_reg(\d+)')
@@ -333,35 +338,11 @@ def check_files(indir, outdir):
     m = pattern1.match(f)
     cyc = int(m.groups()[0])
     reg = int(m.groups()[1])
-    cycles.add(cyc)
-    regions.add(reg)
     key = 'c{}_r{}'.format(cyc,reg)
     d_in[key] = os.path.join(indir, f)
     d_out[key] = os.path.join(outdir, f2)
   
-  imagelist = glob.glob(os.path.join(indir,folders_in[0],'*_*_Z*_CH*.tif'))
-  
-  pattern2 = re.compile('.*_(\d+)_Z(\d+)_CH(\d).tif')
-  for f in imagelist:
-    m = pattern2.match(f)  
-    positions.add(int(m.groups()[0]))
-    slices.add(int(m.groups()[1]))
-    channels.add(int(m.groups()[2]))
-  
-  fname = os.path.join(indir, folders_in[0], imagelist[0])
-  print(fname)
-  img = io.imread(fname)
-  h, w = img.shape
-  z = len(slices)
-  
-  print('channels:\t', channels)
-  print('cycles: \t', cycles)
-  print('regions:\t', regions)
-  print('positions:\t', positions)
-  print('stack size:\t {} x {} x {}'.format(z, h, w))
-  print()
-  
-  return d_in, d_out, channels, cycles, regions, positions
+  return d_in, d_out
 
 def load_config(indir):
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
@@ -376,6 +357,7 @@ def load_config(indir):
   cycles    = config['dimensions']['cycles']
   regions   = config['dimensions']['regions']
   positions = config['dimensions']['gx'] * config['dimensions']['gy']
+  snake = config['dimensions'].get('snake', True)
   
   w = config['dimensions']['width']
   h = config['dimensions']['height']
@@ -387,22 +369,27 @@ def load_config(indir):
   p_psf.NA      = config['microscope']['NA']
   p_psf.lambda0 = min([v[0] for v in wavelengths.values()])
   
-  p_psf.zpos   = config['gibson_lanni']['zpos']
-  p_psf.ti0    = config['gibson_lanni']['ti0']
-  p_psf.tg     = config['gibson_lanni']['tg']
-  p_psf.tg0    = config['gibson_lanni']['tg0']
-  p_psf.ng     = config['gibson_lanni']['ng']
-  p_psf.ng0    = config['gibson_lanni']['ng0']
-  p_psf.ni     = config['gibson_lanni']['ni']
-  p_psf.ni0    = config['gibson_lanni']['ni0']
-  p_psf.ns     = config['gibson_lanni']['ns']
-  p_psf.nbasis = config['gibson_lanni']['nbasis']
-  p_psf.nrho   = config['gibson_lanni']['nrho']
+  if config.get('gibson_lanni'):
+    p_psf.zpos   = config['gibson_lanni']['zpos']
+    p_psf.ti0    = config['gibson_lanni']['ti0']
+    p_psf.tg     = config['gibson_lanni']['tg']
+    p_psf.tg0    = config['gibson_lanni']['tg0']
+    p_psf.ng     = config['gibson_lanni']['ng']
+    p_psf.ng0    = config['gibson_lanni']['ng0']
+    p_psf.ni     = config['gibson_lanni']['ni']
+    p_psf.ni0    = config['gibson_lanni']['ni0']
+    p_psf.ns     = config['gibson_lanni']['ns']
+    p_psf.nbasis = config['gibson_lanni']['nbasis']
+    p_psf.nrho   = config['gibson_lanni']['nrho']
   
   if config.get('vectorial'):
-    p_psf.nr        = config['vectorial']['radius']
-    p_psf.accuracy  = config['vectorial']['accuracy']
-    p_psf.tolerance = config['vectorial']['tolerance']
+    p_psf.nr        = config['vectorial'].get('radius', 256)
+    p_psf.accuracy  = config['vectorial'].get('accuracy', 9)
+    p_psf.tolerance = config['vectorial'].get('tolerance', 0.1)
+  
+  if config.get('gaussian'):
+    p_psf.sigma_xy = config['gaussian'].get('sigma_xy', 1.0)
+    p_psf.sigma_z  = config['gaussian'].get('sigma_z',  1.0)
   
   p_psf.extend_psf = config['padding'].get('extend_psf', False)
   p_psf.center_psf = config['padding'].get('center_psf', True)
@@ -420,17 +407,21 @@ def load_config(indir):
   p_RL.ny = c_kernelsize_cufft(int(round(h*1.05)), int(round(h*1.5)))
   p_RL.nz = z + p_psf.zpad
   
-  p_RL.correct_darkfield = config['correction'].get('correct_darkfield', False)
-  p_RL.correct_flatfield = config['correction'].get('correct_flatfield', False)
-  
-  dark = config['correction']['darkfield_images'] if p_RL.correct_darkfield else ''
-  flat = config['correction']['flatfield_images'] if p_RL.correct_flatfield else ''
-
-  if not isinstance(dark, list): dark = [dark] * len(channels)
-  if not isinstance(flat, list): flat = [flat] * len(channels)
-  
-  if len(dark) != len(channels): raise('Wrong number of darkfield images were given!')
-  if len(flat) != len(channels): raise('Wrong number of flatfield images were given!') 
+  if config.get('correction'):
+    p_RL.correct_darkfield = config['correction'].get('correct_darkfield', False)
+    p_RL.correct_flatfield = config['correction'].get('correct_flatfield', False)
+    
+    dark = config['correction']['darkfield_images'] if p_RL.correct_darkfield else ''
+    flat = config['correction']['flatfield_images'] if p_RL.correct_flatfield else ''
+    
+    if not isinstance(dark, list): dark = [dark] * len(channels)
+    if not isinstance(flat, list): flat = [flat] * len(channels)
+    
+    if p_RL.correct_darkfield: dark = {c: os.path.join(indir, f) for c,f in zip(channels, dark)}
+    if p_RL.correct_flatfield: flat = {c: os.path.join(indir, f) for c,f in zip(channels, flat)}
+    
+    if len(dark) != len(channels): raise('Wrong number of darkfield images were given!')
+    if len(flat) != len(channels): raise('Wrong number of flatfield images were given!') 
   
   p_RL.iterations = config['deconvolution']['iterations']
   p_RL.blind = config['deconvolution'].get('blind', False)
@@ -499,19 +490,33 @@ def load_config(indir):
     channel_z_positions = config['microscope']['channelZPos']
     czshifts = {int(k) : -channel_z_positions[k] / p_psf.resZ for k in fwhms.keys()}
   else: czshifts = {int(k) : 0 for k in wavelengths.keys()}
+
+  inpattern  = config['setup'].get( 'inpattern', '{region}_{position:05d}_Z%03d_CH{channel:d}.tif')
+  outpattern = config['setup'].get('outpattern', '{region}_{position:05d}_Z%%03d_CH{channel:d}.tif')
   
-  return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat
+  regions   = {reg+1 for reg in range(regions)}
+  positions = {pos+1 for pos in range(positions)}
+  cycles    = {cyc+1 for cyc in range(cycles)}
+  channels  = set(channels)
+  
+  if 1:
+    params = {'inpattern': inpattern, 'outpattern': outpattern, 'snake': snake}
+    params.update({'p_psf': p_psf, 'p_RL': p_RL})
+    params.update({'dark': dark, 'flat': flat})
+    params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
+    params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
+    return regions, positions, cycles, channels, params
+  
+  return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat, regions, positions, cycles, channels
 
 
 def main(indir, outdir, max_threads=2, override=0):
-  d_in, d_out, channels, cycles, regions, positions = check_files(indir, outdir)
+  d_in, d_out = check_files(indir, outdir)
   
-  p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat = load_config(indir)
+  regions, positions, cycles, channels, params = load_config(indir)
+  params.update({'d_in': d_in, 'd_out': d_out})
   
-  dark = {c: os.path.join(indir, f) for c,f in zip(channels, dark)}
-  flat = {c: os.path.join(indir, f) for c,f in zip(channels, flat)}
-  
-  if p_RL.w<64 or p_RL.h<64 or p_RL.z<4:
+  if params['p_RL'].w<64 or params['p_RL'].h<64 or params['p_RL'].z<4:
     print('Image stack size is too small, aborting!')
     return 1
   
@@ -523,7 +528,7 @@ def main(indir, outdir, max_threads=2, override=0):
     print('Override mode: deconvolving {}'.format(jobs))
     resume = False # do not use resume for override
   
-  dispatch_jobs(outdir, d_in, d_out, p_psf, p_RL, wavelengths, zshifts, tzshifts, czshifts, ca_xy, dark, flat, jobs, resume, max_threads)
+  dispatch_jobs(outdir, params, jobs, resume, max_threads)
   
   print("Completed processing '{}'".format(indir))
   
