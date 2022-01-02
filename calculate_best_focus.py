@@ -293,7 +293,7 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
       ax.set_zlabel('Z Axis')
       ax.set_zlim(0, z-1)
     
-    target_z = (z-2 + (z&1)) / 2 - 0.5 # shift center by a half slice because there seems to be a consistent bias
+    target_z = (z-2 + (z&1)) / 2 - 0.25 # shift center by a quarter slice because there seems to be a consistent bias
     print(' slices: {}, middle: {}, target: {}'.format(z, (z-1)/2, target_z))
     
     raw_var_sum = 0
