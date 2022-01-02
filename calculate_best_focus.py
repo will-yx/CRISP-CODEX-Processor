@@ -77,7 +77,7 @@ def find_peak_spline(zscores):
   if 0 and np.max(yinterp) > 1e-12:
     plt.plot(range(len(zscores)), zscores)
     plt.plot(xs, yinterp)
-
+    
     print(np.argmax(zscores))
     print(peak)
     plt.show()
@@ -89,7 +89,7 @@ def interpolate_zscores(zscores, dz, us):
   
   spline = interpolate.InterpolatedUnivariateSpline(range(len(zscores)), zscores, ext=3)
   yinterp = spline(xs-dz)
-
+  
   if 0 and abs(dz) > 4 and np.max(yinterp) > 1e-6:
     print(dz)
     plt.plot(dz+np.array(range(len(zscores))), zscores)
@@ -110,9 +110,9 @@ def interpolate_zscores_plot(zscores, dz, us):
   
   return yinterp
 
-def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33, ox=0.3, oy=0.3, show=0):
+def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33, ox=0.3, oy=0.3, serpentine=True, show=0):
   npos = gy*gx
-
+  
   us = 10
   nx = 256
   ny = 256
@@ -125,7 +125,7 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
   ngrid = gy*gx*ty*tx
   
   zu = (z-1) * us + 1
-
+  
   total_raw_var_sum = 0
   total_new_var_sum = 0
   surface_var_sum = 0
@@ -135,7 +135,7 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
     if not os.path.isfile(offsetfile): return 1
     offsets = np.fromfile(offsetfile, dtype=np.float32)
     offsets = offsets.reshape((gy, gx, 4, ncy))
-    offsets = reorder_serpentine(offsets)
+    if serpentine: offsets = reorder_serpentine(offsets)
     driftz = offsets[:,:,2,:]
     driftw = offsets[:,:,3,:]
     
@@ -143,8 +143,8 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
     if not os.path.isfile(tile_cycle_zscorefile): return 1
     position_cycle_zscores = np.fromfile(tile_cycle_zscorefile, dtype=np.float32)
     position_cycle_zscores = position_cycle_zscores.reshape((gy, gx, ty, tx, ncy, z))
-    position_cycle_zscores = reorder_serpentine(position_cycle_zscores)
-
+    if serpentine: position_cycle_zscores = reorder_serpentine(position_cycle_zscores)
+    
     if np.any(np.isnan(offsets)):
       print("Error: NaN value encountered in '{}'".format(offsetfile));
       return 1
@@ -174,50 +174,29 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
     #cycle_mean_zdrift = [np.average(driftz[:,:,cy].flat, weights=position_weights) for cy in range(ncy)]
     #print(cycle_mean_zdrift)
 
-    for pos in range(ngrid):
-      break
-      if pos < 805: continue
-      for cy in range(ncy):
-        interpolate_zscores_plot(flat_cycle_zscores[pos,cy], 0, us)
-      plt.show()
-
     if 0:
-      cycle_zpeaks = np.empty((ncy, ngrid), dtype=np.float32)
-      cycle_grid_zs = np.empty((ncy, ngrid, z), dtype=np.float32)
-      for cy in range(ncy):
-        grid_zscores = flat_cycle_zscores[:,cy]
-        cycle_zpeaks[cy] = np.array([find_peak(grid_zscores[pos]) for pos in range(ngrid)])
-        #cycle_zpeaks[cy] = np.array([find_peak_spline(grid_zscores[pos]) for pos in range(ngrid)])
-        
-        cycle_grid_zs[cy] = np.array([grid_zscores[pos] for pos in range(ngrid)])
-      
-      focusvolume = np.array([np.average(cycle_grid_zs[:,pos,:], weights=cycle_weights, axis=0) for pos in range(ngrid)])
-      focusplane = np.array([find_peak_spline(profile) for profile in focusvolume])
-      
-      focuserror = np.array([np.std([find_peak_spline(profile) for profile in cycle_grid_zs[:,pos,:]]) for pos in range(ngrid)])
-      print(np.mean(focuserror))
-    else:
-      cycle_zpeaks = np.empty((ncy, ngrid), dtype=np.float32)
-      cycle_grid_zs = np.empty((ncy, ngrid, zu), dtype=np.float32)
-      for cy in range(ncy):
-        grid_zscores = flat_cycle_zscores[:,cy]
-        cycle_zpeaks[cy] = np.array([find_peak(grid_zscores[pos]) for pos in range(ngrid)])
-        #cycle_zpeaks[cy] = np.array([find_peak_spline(grid_zscores[pos]) for pos in range(ngrid)])
-        
-        cycle_grid_zs[cy] = np.array([interpolate_zscores(grid_zscores[pos], 0, us) for pos in range(ngrid)])
-      
-      focusvolume = np.array([np.average(cycle_grid_zs[:,pos,:], weights=cycle_weights, axis=0) for pos in range(ngrid)])
-      focusplane = np.array([find_peak(profile)/us for profile in focusvolume])
-      
-      focuserror = np.array([np.std([find_peak_spline(profile)/us for profile in cycle_grid_zs[:,pos,:]]) for pos in range(ngrid)])
-      print(np.mean(focuserror))
+      for pos in [999]:
+        print('pos: {} of {}'.format(pos+1, ngrid))
+        for cy in range(ncy):
+          interpolate_zscores_plot(flat_cycle_zscores[pos,cy], 0, us)
+        plt.show()
     
-    if 0:
-      focusweight = np.array([np.log(1 + np.max(profile)*1e6) for profile in focusvolume])
-    else: 
-      focusweight = np.array([pow(0.01 + std, -0.5) for std in focuserror])
+    cycle_zpeaks = np.empty((ncy, ngrid), dtype=np.float32)
+    cycle_grid_zs = np.empty((ncy, ngrid, zu), dtype=np.float32)
+    for cy in range(ncy):
+      grid_zscores = flat_cycle_zscores[:,cy]
+      cycle_zpeaks[cy] = np.array([find_peak(grid_zscores[pos]) for pos in range(ngrid)])
+      #cycle_zpeaks[cy] = np.array([find_peak_spline(grid_zscores[pos]) for pos in range(ngrid)])
+      cycle_grid_zs[cy] = np.array([interpolate_zscores(grid_zscores[pos], 0, us) for pos in range(ngrid)])
+    
+    focusvolume = np.array([np.average(cycle_grid_zs[:,pos,:], weights=cycle_weights, axis=0) for pos in range(ngrid)])
+    focusplane = np.array([find_peak(profile)/us for profile in focusvolume])
+    focuserror = np.array([np.std([find_peak_spline(profile)/us for profile in cycle_grid_zs[:,pos,:]]) for pos in range(ngrid)])
+    print('mean cycle z error: {:.1e}'.format(np.mean(focuserror)))
+    
+    if 0: focusweight = np.array([np.log(1 + np.max(profile)*1e6) for profile in focusvolume])
+    else: focusweight = np.array([pow(0.01 + std, -0.5) for std in focuserror])
     avgerr = np.mean(focuserror)
-    
     
     if 0:
       print('Focus plane:')
@@ -230,91 +209,91 @@ def calculate_best_focus(indir, nreg=5, ncy=18, gx=5, gy=7, w=1920, h=1440, z=33
       print('  Average error: {:.4f}'.format(avgerr))
       print()
     
-    if 1:
-      if show:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-      
-      fx = (w//tx) - ((w//tx)*(tx-1) + nx - w) / (tx-1)
-      fy = (h//ty) - ((h//ty)*(ty-1) + ny - h) / (ty-1)
-      
-      txs = [int(round(gi*fx + nx/2)) for gi in range(tx)]
-      tys = [int(round(gj*fy + ny/2)) for gj in range(ty)]
-      
-      X = np.array([[(i//tx)*w*(1-ox) + txs[i%tx] for i in range(gx*tx)] for j in range(gy*ty)])
-      Y = np.array([[(j//ty)*h*(1-oy) + tys[j%ty] for i in range(gx*tx)] for j in range(gy*ty)])
-      
-      Z = focusplane.reshape(gy*ty,gx*tx).copy()
-      
-      wmin = np.percentile(grid_weights.flat, 10) * 0.1
-      W = np.array([(max(wmin,gw))**0.1 * fw**0.5 for gw, fw in zip(grid_weights.flat, focusweight)])
-
-      WS = sorted(W)
-      knee = 3*len(W)//4
-      cutoff = WS[knee] * 0.45
-      while knee > 0 and WS[knee] > cutoff: knee -= 1
-      
-      percentile = 100 * np.max([0.05, knee / len(W)])
-      threshold = np.percentile(W, percentile) if knee else np.percentile(W, 50) * 0.5
-      
-      Z[W.reshape(gy*ty,gx*tx) < threshold] = np.NaN
-      W[W < threshold] = threshold
-      Z0 = Z.copy()
-      while True and np.isnan(Z).any():
-        Zi = Z.copy()
-        for y in range(gy*ty):
-          for x in range(gx*tx):
-            if np.isnan(Zi[y,x]):
-              zsum, zwt = 0,0
-              radius = 10
-              for dy in range(-radius,radius+1):
-                for dx in range(-radius,radius+1):
-                  if y+dy < 0 or y+dy >= gy*ty: continue
-                  if x+dx < 0 or x+dx >= gx*tx: continue
-                  if np.isfinite(Zi[y+dy,x+dx]):
-                    wt = 1 / np.sqrt(dy*dy + dx*dx)
-                    zsum += wt * Zi[y+dy,x+dx]
-                    zwt  += wt
-              if zwt > 10: Z[y,x] = zsum / zwt
-      
-      print('Removed {:.1f}% of points due to low weight'.format(100 * np.count_nonzero(np.isnan(Z0))/Z0.size))
-      
-      spline2D = interpolate.bisplrep(X.flat, Y.flat, Z, w=W, s=ngrid**3)
-      ZI = np.array([interpolate.bisplev(xi, yi, spline2D) for xi,yi in zip(X.flat,Y.flat)]).reshape(gy*ty, gx*tx)
-      
-      ZI = np.clip(ZI, 0, z-1)
-      ZIvalid = ZI[np.isfinite(Z0)].flat
-      zimean = np.mean(ZIvalid)
-      zimin = np.min(ZIvalid)
-      zimax = np.max(ZIvalid)
-      
-      print('Surface mean: {:.1f} ({:+.1f} slices from center)'.format(zimean, zimean - (z-1)/2))
-      print('Surface min: {:.1f}, max: {:.1f}'.format(zimin, zimax))
-      print('Surface var: {:.1f}'.format(np.var(ZIvalid)))
-      surface_var_sum += np.var(ZIvalid)
-      
-      if show:
-        warnings.filterwarnings('ignore', message='Z contains NaN values. This may result in rendering artifacts.')
-
-        XS = np.argsort(X, axis=1).reshape(Z.shape)
-        YS = np.argsort(Y, axis=0).reshape(Z.shape)
-        
-        XP = np.sort(X, axis=1)
-        YP = np.sort(Y, axis=0)
-        Z0P = np.array([[Z0[YS[j][i]][XS[j][i]] for i in range(gx*tx)] for j in range(gy*ty)])
-        ZIP = np.array([[ZI[YS[j][i]][XS[j][i]] for i in range(gx*tx)] for j in range(gy*ty)])
-        
-        plt.title('Region {:}'.format(r))
-        ax.plot_surface(XP, -YP, ZIP)
-        #ax.plot_surface(X, -Y, Z, alpha=0.5)
-        ax.plot_surface(X, -Y, Z0, alpha=0.5)
-        
-        ax.set_xlabel('X Axis')
-        ax.set_ylabel('Y Axis')
-        ax.set_zlabel('Z Axis')
-        ax.set_zlim(0, z-1)
+    # fit a surface to the best focus tiles
+    if show:
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
     
-    target_z = (z-2 + (z&1)) / 2 - 0.25 # shift center by a quarter slice because there seems to be a consistent bias
+    fx = (w//tx) - ((w//tx)*(tx-1) + nx - w) / (tx-1)
+    fy = (h//ty) - ((h//ty)*(ty-1) + ny - h) / (ty-1)
+    
+    txs = [int(round(gi*fx + nx/2)) for gi in range(tx)]
+    tys = [int(round(gj*fy + ny/2)) for gj in range(ty)]
+    
+    X = np.array([[(i//tx)*w*(1-ox) + txs[i%tx] for i in range(gx*tx)] for j in range(gy*ty)])
+    Y = np.array([[(j//ty)*h*(1-oy) + tys[j%ty] for i in range(gx*tx)] for j in range(gy*ty)])
+    
+    Z = focusplane.reshape(gy*ty,gx*tx).copy()
+    
+    wmin = np.percentile(grid_weights.flat, 10) * 0.1
+    W = np.array([(max(wmin,gw))**0.1 * fw**0.5 for gw, fw in zip(grid_weights.flat, focusweight)])
+
+    WS = sorted(W)
+    knee = 3*len(W)//4
+    cutoff = WS[knee] * 0.45
+    while knee > 0 and WS[knee] > cutoff: knee -= 1
+    
+    percentile = 100 * np.max([0.05, knee / len(W)])
+    threshold = np.percentile(W, percentile) if knee else max(np.percentile(W, 50) * 0.5, np.percentile(W, 25))
+    
+    Z[W.reshape(gy*ty,gx*tx) < threshold] = np.NaN
+    W[W < threshold] = threshold
+    Z0 = Z.copy()
+    while np.isnan(Z).any():
+      Zi = Z.copy()
+      for y in range(gy*ty):
+        for x in range(gx*tx):
+          if np.isnan(Zi[y,x]):
+            zsum, zwt = 0,0
+            radius = 10
+            for dy in range(-radius,radius+1):
+              for dx in range(-radius,radius+1):
+                if y+dy < 0 or y+dy >= gy*ty: continue
+                if x+dx < 0 or x+dx >= gx*tx: continue
+                if np.isfinite(Zi[y+dy,x+dx]):
+                  wt = 1 / np.sqrt(dy*dy + dx*dx)
+                  zsum += wt * Zi[y+dy,x+dx]
+                  zwt  += wt
+            if zwt > 10: Z[y,x] = zsum / zwt
+    
+    print('Removed {:.1f}% of points due to low weight'.format(100 * np.count_nonzero(np.isnan(Z0))/Z0.size))
+    
+    spline2D = interpolate.bisplrep(X.flat, Y.flat, Z, w=W, s=ngrid**3)
+    ZI = np.array([interpolate.bisplev(xi, yi, spline2D) for xi,yi in zip(X.flat,Y.flat)]).reshape(gy*ty, gx*tx)
+    
+    ZI = np.clip(ZI, 0, z-1)
+    ZIvalid = ZI[np.isfinite(Z0)].flat
+    zimean = np.mean(ZIvalid)
+    zimin = np.min(ZIvalid)
+    zimax = np.max(ZIvalid)
+    
+    print('Surface mean: {:.1f} ({:+.1f} slices from center)'.format(zimean, zimean - (z-1)/2))
+    print('Surface min: {:.1f}, max: {:.1f}'.format(zimin, zimax))
+    print('Surface var: {:.1f}'.format(np.var(ZIvalid)))
+    surface_var_sum += np.var(ZIvalid)
+    
+    if show:
+      warnings.filterwarnings('ignore', message='Z contains NaN values. This may result in rendering artifacts.')
+
+      XS = np.argsort(X, axis=1).reshape(Z.shape)
+      YS = np.argsort(Y, axis=0).reshape(Z.shape)
+      
+      XP = np.sort(X, axis=1)
+      YP = np.sort(Y, axis=0)
+      Z0P = np.array([[Z0[YS[j][i]][XS[j][i]] for i in range(gx*tx)] for j in range(gy*ty)])
+      ZIP = np.array([[ZI[YS[j][i]][XS[j][i]] for i in range(gx*tx)] for j in range(gy*ty)])
+      
+      plt.title('Region {:}'.format(r))
+      ax.plot_surface(XP, -YP, ZIP)
+      #ax.plot_surface(X, -Y, Z, alpha=0.5)
+      ax.plot_surface(X, -Y, Z0, alpha=0.5)
+      
+      ax.set_xlabel('X Axis')
+      ax.set_ylabel('Y Axis')
+      ax.set_zlabel('Z Axis')
+      ax.set_zlim(0, z-1)
+    
+    target_z = (z-2 + (z&1)) / 2 - 0.5 # shift center by a half slice because there seems to be a consistent bias
     print(' slices: {}, middle: {}, target: {}'.format(z, (z-1)/2, target_z))
     
     raw_var_sum = 0
@@ -399,8 +378,10 @@ def main(dirs=[], show=False):
     gy   = config['dimensions']['gy']
     ncy  = config['dimensions']['cycles']
     nreg = config['dimensions']['regions']
-    
-    res = calculate_best_focus(indir, nreg, ncy, gx, gy, w, h, z, ox, oy, show=show)
+    snake = config['dimensions'].get('snake', True)
+
+    print(indir)
+    res = calculate_best_focus(indir, nreg, ncy, gx, gy, w, h, z, ox, oy, snake, show=show)
     
     if res != 0:
       asdf
