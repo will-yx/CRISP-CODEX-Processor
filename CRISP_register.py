@@ -12,7 +12,7 @@ def unique(sequence):
     seen.add(value)
     yield value
 
-def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zregister):
+def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, zregister):
   ha = params[0]
   hb = params[1]
   hc = params[2]
@@ -85,12 +85,15 @@ def stitch_main(indir, outdir, params):
   nreg = config['dimensions']['regions']
   nc = len(config['microscope']['channelNames'])
   
-  nzout = (zout - 2 - 2) if zout > 8 else zout
   zregister = (zout+1) >> 1
+  
+  if config.get(extended_depth_of_field):
+    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
+      zregister = 0
   
   if not os.path.exists(outdir): os.makedirs(outdir)
   for reg in range(1,1+nreg):
-    err = stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zregister)
+    err = stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, zregister)
     rawscores.append(err)
     print('Score: {}'.format(err))
   

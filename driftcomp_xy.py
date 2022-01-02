@@ -4,9 +4,11 @@ from ctypes import *
 from _ctypes import FreeLibrary
 
 import os
+import sys
 import glob
 import re
 import itertools
+import toml
 import numpy as np
 from shutil import copyfile
 from timeit import default_timer as timer
@@ -42,8 +44,10 @@ def driftcomp(out, tid, job, dims, params, indir):
   reg, pos = job
   
   c_indir = c_char_p(indir.encode('ascii'))
+
+  mode = 3
   
-  status = c_driftcomp(c_indir, reg, pos, ncy, nz, 0, tid, 1, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'])
+  status = c_driftcomp(c_indir, reg, pos, ncy, nz, 0, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'])
   
   return status
 
@@ -148,58 +152,39 @@ def get_folders(root):
 
 def check_files(indir):
   folders_in = get_folders(indir)
-
+  
   if not os.path.exists(os.path.join(indir, 'driftcomp')): os.mkdir(os.path.join(indir, 'driftcomp'))
   
-  cycles = set()
-  regions = set()
-  positions = set()
-  slices = set()
-  channels = set()
-
   d_in = {}
   pattern1 = re.compile('cyc(\d+)_reg(\d+)')
   for f in folders_in:
     m = pattern1.match(f)
     cyc = int(m.groups()[0])
     reg = int(m.groups()[1])
-    cycles.add(cyc)
-    regions.add(reg)
     key = 'c{}_r{}'.format(cyc,reg)
     d_in[key] = os.path.join(indir, f)
   
-  imagelist_z = glob.glob(os.path.join(indir,folders_in[0],'*_*_Z*_CH*.tif'))
-  imagelist_e = glob.glob(os.path.join(indir,folders_in[0],'*_*_EDF_CH*.tif'))
-
-  if len(imagelist_z) > 0:
-    pattern2 = re.compile('.*_(\d+)_Z(\d+)_CH(\d).tif')
-    for f in imagelist_z:
-      m = pattern2.match(f)
-      positions.add(int(m.groups()[0]))
-      slices.add(int(m.groups()[1]))
-      channels.add(int(m.groups()[2]))
-  else:
-    pattern2 = re.compile('.*_(\d+)_EDF_CH(\d).tif')
-    slices = {1}
-    for f in imagelist_e:
-      m = pattern2.match(f)
-      positions.add(int(m.groups()[0]))
-      channels.add(int(m.groups()[1]))
-  
-  z = len(slices)
-  
-  print('channels:\t', channels)
-  print('cycles: \t', cycles)
-  print('regions:\t', regions)
-  print('positions:\t', positions)
-  print('slices:\t', z)
-  print()
-  
-  return d_in, channels, cycles, regions, positions, z
+  return d_in
 
 def main(indir, params=None, max_threads=2):
   print("Processing '{}'".format(indir))
-  d_in, channels, cycles, regions, positions, z = check_files(indir)
+  d_in = check_files(indir)
+  
+  config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
+
+  w = config['dimensions']['width']
+  h = config['dimensions']['height']
+  z = config['dimensions']['slices']
+
+  regions   = {reg+1 for reg in range(config['dimensions']['regions'])}
+  positions = {pos+1 for pos in range(config['dimensions']['gx']*config['dimensions']['gy'])}
+  cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
+  channels  = set(config['microscope']['wavelengthEM'].keys())
+  reference_channel = config['microscope'].get('reference_channel', 1)
+  
+  if config.get(extended_depth_of_field):
+    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
+      z = 1
   
   for r in regions:
     # allocate binary output files to prevent a potential race condition
@@ -240,7 +225,7 @@ if __name__ == '__main__':
   #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20191028_run18_preveh2_decon') # v5 to be processed
   #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20191104_run19_postclo_decon') #
   
-  dirs.append('G:/20190523_run10_postveh_decon_ca24') # v5 to be processed
+  dirs.append('N:/CODEX raw/Mouse Sk Muscle/20211209_VEGF_regen_run2')
   
   dirs.extend(sys.argv[1:])
   

@@ -99,8 +99,14 @@ def stitch_main(indir, outdir, params):
   nzout = (zout - 2 - 2) if zout > 8 else zout
   zregister = (zout+1) >> 1
   
+  if config.get(extended_depth_of_field):
+    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
+      nzout = 1
+      zregister = 0
+  
   if not os.path.exists(outdir): os.makedirs(outdir)
   for reg in range(1,1+nreg):
+    if not os.path.isfile(os.path.join(outdir, 'region{:03d}_registration.bin'.format(reg))): continue
     err = stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zregister, blankstring)
     rawscores.append(err)
     print('Score: {}'.format(err))
@@ -126,6 +132,7 @@ def main(indir, outdir):
 if __name__ == '__main__':
   indir = 'X:/20190802_run12_preveh_decon'
   outdir = 'X:/stitched/20190802_run12_preveh'
+  outdir = 'X:/stitched/20211209_VEGF_regen_run2_RAW_d333_f333b'
   main(indir, outdir)
  
 
