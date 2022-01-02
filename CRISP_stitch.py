@@ -44,7 +44,7 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zr
   command += ' --ox {:.4f} --oy {:.4f}'.format(ox, oy)
   command += ' -i "{}" -o "{}" --zr 0 --quiet'.format(indir, outdir)
   command += blankstring
-  command += ' --update-ca'
+  command += ' --update-ca --blend0'
   command += ''.join([' -a {:.4f} -a {:.4f}'.format(x, y) for x, y in zip(ax, ay)])
   command += ' --ha {} --hb {} --hc {} --hd {} --he {}'.format(ha,hb,hc,hd,he)
   command += ' -3 {} -4 {} -5 {:d} -6 {} -9 {:d} -0 {:d}'.format(o3,o4,o5,o6,o9,o0)
