@@ -73,11 +73,6 @@ def stitch_main(indir, outdir, params):
   rawscores = []
   name = os.path.basename(os.path.normpath(indir))
   
-  dcdir = os.path.join(indir, 'driftcomp')
-  if not os.path.isdir(dcdir):
-    print("Error: driftcomp directory '{}' not found!".format(dcdir))
-    return 1
-  
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
     
   zout = config['padding']['zout']
@@ -88,6 +83,11 @@ def stitch_main(indir, outdir, params):
   ncy  = config['dimensions']['cycles']
   nreg = config['dimensions']['regions']
   nc = len(config['microscope']['channelNames'])
+  
+  dcdir = os.path.join(indir, 'driftcomp')
+  if ncy > 1 and not os.path.isdir(dcdir):
+    print("Error: driftcomp directory '{}' not found!".format(dcdir))
+    return 1
   
   zregister = (zout+1) >> 1
   
