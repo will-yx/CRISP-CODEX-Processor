@@ -18,6 +18,8 @@ import humanfriendly
 from parse_exposure_times import *
 from PyCaffeinate import PyCaffeinate
 
+os.environ['VIPS_WARNING'] = '0'
+
 class psf_params(Structure):
   _fields_ = [
               ('zpos', c_float),

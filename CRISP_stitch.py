@@ -36,6 +36,9 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zr
 
   ax  = [0.0, 0.0, 0.0, 0.0]
   ay  = [0.0, 0.0, 0.0, 0.0]
+
+  env = dict(os.environ)
+  env.update({'VIPS_WARNING': '0'})
   
   command = 'CRISP_stitch.exe --nc {} --ncy {} --gx {} --gy {} -r {}'.format(nc, ncy, gx, gy, reg)
   command += ' --ox {:.4f} --oy {:.4f}'.format(ox, oy)
@@ -59,7 +62,8 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zr
     stitch_command = command + ' --load --save -z {}'.format(z)
     print("Executing command: '{}'".format(stitch_command))
     t0 = timer()
-    v = subprocess.call(stitch_command, shell=False)
+    with subprocess.Popen(stitch_command, env=env) as proc:
+      v = proc.wait()
     t1 = timer()
     print('Elapsed: {:.0f}s'.format(t1-t0))
     print('Result: {}'.format(v))
@@ -80,7 +84,7 @@ def stitch_main(indir, outdir, params):
     return 1
   
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
-    
+  
   zout = config['padding']['zout']
   ox   = config['dimensions']['overlap_x']
   oy   = config['dimensions']['overlap_y']
@@ -95,7 +99,7 @@ def stitch_main(indir, outdir, params):
     blankstring = ''.join([' --blank {}'.format(c) for c in blankcycles])
   else:
     blankstring = ''
-    
+  
   nzout = (zout - 2 - 2) if zout > 8 else zout
   zregister = (zout+1) >> 1
   

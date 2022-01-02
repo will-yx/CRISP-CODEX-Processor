@@ -37,6 +37,9 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, zregister
   ax  = [0.0, 0.0, 0.0, 0.0]
   ay  = [0.0, 0.0, 0.0, 0.0]
   
+  env = dict(os.environ)
+  env.update({'VIPS_WARNING': '0'})
+  
   command = 'CRISP_stitch.exe --nc {} --ncy {} --gx {} --gy {} -r {}'.format(nc, ncy, gx, gy, reg)
   command += ' --ox {:.4f} --oy {:.4f}'.format(ox, oy)
   command += ' -i "{}" -o "{}" --zr 0 --quiet'.format(indir, outdir)
@@ -48,12 +51,13 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, zregister
   command += ' -! {} -@ {} -# {} -$ {}'.format(p1,p2,p3,p4)
   
   errsum = 0.0
-  print("Registering region {}".format(reg))
-  register_command = command + ' --nosave -z {}'.format(zregister)
-  print("Executing command: '{}'".format(register_command))
+  print(f"Registering region {reg}")
+  register_command = command + f' --nosave -z {zregister}'
+  print(f"Executing command: '{register_command}'")
   
   t0 = timer()
-  v = subprocess.call(register_command, shell=False)
+  with subprocess.Popen(register_command, env=env) as proc:
+    v = proc.wait()
   t1 = timer()
   print('Elapsed: {:.0f}s'.format(t1-t0))
   print('Result: {}'.format(v))
@@ -99,6 +103,7 @@ def stitch_main(indir, outdir, params):
   
   print('Raw errors for run {}:'.format(os.path.basename(os.path.normpath(indir))))
   print([int(s) for s in rawscores])
+  print(np.mean(rawscores))
   
   t1 = timer()
   

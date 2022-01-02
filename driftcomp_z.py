@@ -16,6 +16,8 @@ from time import sleep
 import humanfriendly
 from PyCaffeinate import PyCaffeinate
 
+os.environ['VIPS_WARNING'] = '0'
+
 if os.name=='nt':
   libc = cdll.msvcrt
   CRISP_path = os.path.join(os.getcwd(),'CRISP.dll')
