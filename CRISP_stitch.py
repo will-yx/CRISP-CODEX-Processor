@@ -103,7 +103,7 @@ def stitch_main(indir, outdir, params):
   nzout = (zout - 2 - 2) if zout > 8 else zout
   zregister = (zout+1) >> 1
   
-  if config.get(extended_depth_of_field):
+  if config.get('extended_depth_of_field'):
     if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
       nzout = 1
       zregister = 0

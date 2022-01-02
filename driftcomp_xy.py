@@ -182,7 +182,7 @@ def main(indir, params=None, max_threads=2):
   channels  = set(config['microscope']['wavelengthEM'].keys())
   reference_channel = config['microscope'].get('reference_channel', 1)
   
-  if config.get(extended_depth_of_field):
+  if config.get('extended_depth_of_field'):
     if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
       z = 1
   
