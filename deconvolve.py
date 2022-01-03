@@ -64,7 +64,7 @@ class deconvolution_params(Structure):
               ('zmin_project_alpha', c_float),
               ('ax', c_float), ('ay', c_float),
               ('aw', c_float), ('ah', c_float),
-              ('ztrim1', c_int), ('ztrim2', c_int),
+              ('ztrim1', c_int), ('ztrim2', c_int), ('ztrim1edf', c_int), ('ztrim2edf', c_int),
               ('zshift', c_float), ('tzshift', c_uint64),
               ('edf', c_bool), ('save_zstack', c_bool),
               ('subband_filter', c_bool), ('majority_filter', c_bool), ('edf_clamp', c_int), 
@@ -445,9 +445,11 @@ def load_config(indir):
   
   p_RL.ztrim1 = config['padding']['ztrim1']
   p_RL.ztrim2 = config['padding']['ztrim2']
+  p_RL.ztrim1edf = config['padding'].get('ztrim1edf', 0)
+  p_RL.ztrim2edf = config['padding'].get('ztrim2edf', 0)
   p_RL.zshift = 0
 
-  if p_RL.z != p_RL.zout + p_RL.ztrim1 + p_RL.ztrim2:
+  if p_RL.z != p_RL.zout + p_RL.ztrim1 + p_RL.ztrim2 + p_RL.ztrim1edf + p_RL.ztrim2edf:
     raise ValueError('Error: Number of input z slices is not the sum of output plus trimmed slices!') 
 
   p_RL.edf = True
