@@ -196,22 +196,12 @@ def process_jobs(args):
 
 
 def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
-  if 1:
-    config_hash = binascii.crc32(bytes(repr(params).encode('ascii')))
-    print('\n\nWARNING : RESUME IS BROKEN BECAUSE\np_psf: <__main__.psf_params object at 0x0000019C276EB940>, p_RL: <__main__.deconvolution_params object at 0x0000019C276EB8C0>\n\n')
-    #print(repr(params))
-    #return
-  else:
-    config_bytes = bytes(p_psf) + bytes(p_RL)
-    config_bytes += bytes(repr(wavelengths).encode('ascii'))
-    config_bytes += bytes(repr(zshifts).encode('ascii'))
-    config_bytes += bytes(repr(tzshifts).encode('ascii'))
-    config_bytes += bytes(repr(czshifts).encode('ascii'))
-    config_bytes += bytes(repr(ca_xy).encode('ascii'))
-    config_bytes += bytes(repr(dark).encode('ascii'))
-    config_bytes += bytes(repr(flat).encode('ascii'))
-    config_hash = binascii.crc32(config_bytes)
-  
+  struct_keys = ['p_psf', 'p_RL']
+  printable_params = {k: v for k, v in params.items() if k not in struct_keys}
+  config_bytes = bytes(repr(printable_params).encode('ascii'))
+  for k in struct_keys:
+    config_bytes += bytes(params[k])
+  config_hash = binascii.crc32(config_bytes)
   
   progress_dict = {}
   progressfile = os.path.join(outdir, 'deconvolution_progress.npz')
