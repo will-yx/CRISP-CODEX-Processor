@@ -46,7 +46,7 @@ else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_dice_mosaic = libCRISP.dice_mosaic
+c_dice_mosaic = libCRISP.dice_mosaic_async
 c_dice_mosaic.restype = c_int
 c_dice_mosaic.argtypes = [c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int]
 
@@ -73,7 +73,7 @@ def process_jobs(args):
   process = mp.current_process()
   out.put('{}> pid {:5d} got {} jobs'.format(tid, process.pid, len(jobs)))
 
-  sleep(5 * tid)
+  sleep(2 * tid)
   
   for job in jobs:
     for attempts in reversed(range(3)):
@@ -175,6 +175,10 @@ def main(indir, outdir, config, max_threads=4):
   nreg = config['dimensions']['regions']
   ncy  = config['dimensions']['cycles']
   nch  = len(config['microscope']['channelNames'])
+  
+  if config.get('extended_depth_of_field'):
+    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
+      zout = 0
   
   ztrim = 2
   
