@@ -46,7 +46,7 @@ else:
   libc = cdll.LoadLibrary(_ctypes.util.find_library('c'))
   libCRISP = CDLL('CRISP.dylib')
 
-c_dice_mosaic = libCRISP.dice_mosaic_async
+c_dice_mosaic = libCRISP.dice_mosaic
 c_dice_mosaic.restype = c_int
 c_dice_mosaic.argtypes = [c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_int]
 
@@ -62,6 +62,8 @@ def dice_mosaic(tid, job, indir, outdir, gx, gy, border, slice_offset):
   
   c_indir = c_char_p(indir.encode('ascii'))
   c_outdir = c_char_p(outdir.encode('ascii'))
+
+  if sl == 0: slice_offset = 0
   
   status = c_dice_mosaic(c_indir, c_outdir, reg, cy, ch, sl, slice_offset, gx, gy, border[0], border[1])
   
@@ -73,7 +75,7 @@ def process_jobs(args):
   process = mp.current_process()
   out.put('{}> pid {:5d} got {} jobs'.format(tid, process.pid, len(jobs)))
 
-  sleep(2 * tid)
+  sleep(5 * tid)
   
   for job in jobs:
     for attempts in reversed(range(3)):
@@ -85,7 +87,7 @@ def process_jobs(args):
       status = proc.exitcode
       
       if status == 0: out.put('{}> done'.format(tid))
-      else: out.put('{}> error processing image ({})!'.format(tid, status))
+      else: out.put('{}> error processing image (code: {})!'.format(tid, status))
       
       if status == 0: break
       if attempts > 0: sleep(30)
@@ -121,11 +123,12 @@ def dispatch_jobs(d_in, d_out, joblist, gx, gy, border, slice_offset=0, max_thre
   
   with MyPool(processes=nt) as p:
     rs = p.map_async(process_jobs, [(q, j, d_in, d_out, gx, gy, border, slice_offset, jobs) for j,jobs in enumerate(joblist_per_thread)]) # 
-    
+
+    nc = 0
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
       try:
-        msg = q.get(True, 60)
+        msg = q.get(True, 600)
         if isinstance(msg, str):
           print(msg)
         else:
@@ -187,13 +190,16 @@ def main(indir, outdir, config, max_threads=4):
   z1 = zregister - (nzout >> 1)
   z2 = zregister + (nzout >> 1)
   slices = set(range(z1, z2+1))
+
+  if config.get('extended_depth_of_field') and config['extended_depth_of_field'].get('enabled', True):
+    slices.add(0)
   
   regions  = {reg+1 for reg in range(nreg)}
   cycles   = {-ncy} # process all cycles at once   # {cy+1 for cy in range(ncy)}
   channels = {-nch} # process all channels at once # {ch+1 for ch in range(nch)}
   
   slice_offset = -ztrim if zout > 8 else 0 # input slice 3 becomes output slice 1
-  
+
   jobs = list(itertools.product(regions, cycles, channels, slices))
   dispatch_jobs(indir, outdir, jobs, gx, gy, [0, 0], slice_offset, max_threads)
 
@@ -208,7 +214,7 @@ if __name__ == '__main__':
   config = toml.load(os.path.join(finaldir, 'CRISP_config.toml')) 
   
   t0 = timer()
-  main(stitchdir, finaldir, config, max_threads=8)
+  main(stitchdir, finaldir, config, max_threads=2)
   free_libs([libCRISP, libc])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
