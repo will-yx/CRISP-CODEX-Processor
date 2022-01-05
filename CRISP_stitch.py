@@ -52,8 +52,9 @@ def stitch_region(indir, outdir, reg, params, gx, gy, ox, oy, ncy, nc, nzout, zr
   command += ' -! {} -@ {} -# {} -$ {}'.format(p1,p2,p3,p4)
   
   errsum = 0.0
-  z1 = zregister - (nzout >> 1)
-  z2 = zregister + (nzout >> 1)
+  zcenter = zregister if zregister > 0 else (nzout+1)//2
+  z1 = zcenter - (nzout >> 1)
+  z2 = zcenter + (nzout >> 1)
   slices = list(unique([0, zregister] + list(range(z1, z2+1))))
   
   print('Stitching slices:', slices)
@@ -105,7 +106,6 @@ def stitch_main(indir, outdir, params):
   
   if config.get('extended_depth_of_field'):
     if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
-      nzout = 1
       zregister = 0
   
   if not os.path.exists(outdir): os.makedirs(outdir)
