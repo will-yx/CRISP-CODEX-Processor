@@ -211,7 +211,7 @@ def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
     if resume:
       total_jobcount = len(joblist)
       joblist = [job for job in joblist if progress_dict.get(repr(job)) != config_hash]
-    
+      
       print('  Resuming deconvolution: {} of {} jobs completed, {} remaining'.format(total_jobcount-len(joblist), total_jobcount, len(joblist)))
   
   tstart = timer()
@@ -241,7 +241,8 @@ def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
   
   with mp.Pool(processes=nt) as p:
     rs = p.map_async(process_jobs, [(q, j, params, jobs) for j,jobs in enumerate(joblist_per_thread)])
-    
+
+    nc = 0
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
       try:

@@ -98,7 +98,8 @@ def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
   
   with mp.Pool(processes=nt) as p:
     rs = p.map_async(process_jobs, [(q, j, indir, dims, params, jobs) for j,jobs in enumerate(joblist_per_thread)]) # 
-    
+
+    nc = 0
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
       try:
