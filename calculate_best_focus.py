@@ -384,7 +384,7 @@ def main(dirs=[], show=False):
     res = calculate_best_focus(indir, nreg, ncy, gx, gy, w, h, z, ox, oy, snake, show=show)
     
     if res != 0:
-      asdf
+      raise ValueError('NaN value encountered in find best focus')
 
 if __name__ == '__main__':
   dirs = []
