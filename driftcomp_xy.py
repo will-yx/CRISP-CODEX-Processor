@@ -175,7 +175,7 @@ def main(indir, params=None, max_threads=2):
 
   w = config['dimensions']['width']
   h = config['dimensions']['height']
-  z = config['dimensions']['slices']
+  z = config['padding']['zout']
 
   regions   = {reg+1 for reg in range(config['dimensions']['regions'])}
   positions = {pos+1 for pos in range(config['dimensions']['gx']*config['dimensions']['gy'])}
