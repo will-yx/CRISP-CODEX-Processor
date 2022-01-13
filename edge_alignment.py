@@ -55,8 +55,9 @@ def align_edges(out, tid, job, dims, p):
   if flat: flat = cstr(os.path.join(p['indir'], flat[ch-1]))
   
   indir = cstr(p['indir'])
-  
-  inpattern = None # todo: inpattern formatting for CODEX format
+  inpattern = re.sub('{position:([0-9 d]+)}', '%\\1', p['inpattern'])
+  inpattern = inpattern.format(region=reg, channel=ch)
+  inpattern = cstr(f"cyc%03d_reg{reg:03d}/{inpattern}")
   
   mode = 1 # 0 or 1
 
@@ -211,6 +212,8 @@ def main(indir=None, max_threads=1):
   positions = {pos+1 for pos in range(gx*gy)}
   cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
   channels  = set(list(config['setup'].get('alignment_channels', [1])))
+  
+  inpattern  = config['setup']['inpattern']
   
   if config['correction']['correct_darkfield']:
     dark = config['correction']['darkfield_images']
