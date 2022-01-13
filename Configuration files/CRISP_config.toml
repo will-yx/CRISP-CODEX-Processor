@@ -11,6 +11,12 @@ regions = 10    # number of tissue regions in run
 overlap_x = 0.3 # fraction of overlap between images in X
 overlap_y = 0.3 # fraction of overlap between images in Y
 
+[setup]
+inpattern  = '{region}_{position:05d}_Z%03d_CH{channel:d}.tif' # Z must be printf formatted
+outpattern = '{region}_{position:05d}_Z%03d_CH{channel:d}.tif' # Z must be printf formatted
+alignment_channels = [1] # 1-indexed
+reference_channel = 1 # 1-indexed
+
 [microscope]
 model = "Keyence BZ-X 710"
 magnification = 20
