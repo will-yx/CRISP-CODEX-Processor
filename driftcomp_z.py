@@ -33,7 +33,7 @@ else:
 
 c_driftcomp_3d = libCRISP.driftcomp_3d_tiled_overlap_focus
 c_driftcomp_3d.restype = c_float
-c_driftcomp_3d.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
+c_driftcomp_3d.argtypes = [c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_char_p, c_char_p, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
 
 
 def free_libs(libs):
@@ -48,14 +48,15 @@ def cstr(string):
 def driftcomp(out, tid, job, dims, params, indir, dark, flat):
   ncy, nz = dims
   reg, pos = job
+  ch = params['reference_channel']
   
-  c_indir = c_char_p(indir.encode('ascii'))
+  indir = cstr(indir)
+  inpattern = params['inpattern'].format(region=reg, position=pos, channel=ch)
+  inpattern = cstr(f"cyc%03d_reg{reg:03d}/{inpattern}")
   
   mode = 1 # 0 or 1
-
-  rc =  params['reference_channel']
   
-  status = c_driftcomp_3d(c_indir, reg, pos, ncy, nz, dark, flat, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], params['p1'], params['p2'])
+  status = c_driftcomp_3d(indir, inpattern, reg, pos, ncy, nz, dark, flat, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], params['p1'], params['p2'])
   
   return status
 
@@ -203,6 +204,7 @@ def main(indir=None, max_threads=2):
   cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
   channels  = set(config['microscope']['wavelengthEM'].keys())
   reference_channel = config['microscope'].get('reference_channel', 1)
+  inpattern  = config['setup'].get('inpattern', '{region}_{position:05d}_Z%03d_CH{channel:d}.tif')
   
   if config['correction']['correct_darkfield']:
     dark = config['correction']['darkfield_images']
@@ -235,7 +237,7 @@ def main(indir=None, max_threads=2):
       np.full(max(positions)*ty*tx*max(cycles)*z, np.nan, dtype=np.float32).tofile(ztilefile)
   
   jobs = list(itertools.product(regions, positions))
-  params = {'reference_channel': reference_channel, 'a1': 0.5, 'a2': 0.5, 'a3': 0.5, 'a4': 0.5, 'h1': 8.0, 'h2': 0.75, 'h3': 0.3, 'h4': 0.3, 'h5': 0.9, 'p1': 1.5, 'p2': 2.0}
+  params = {'inpattern': inpattern, 'reference_channel': reference_channel, 'a1': 0.5, 'a2': 0.5, 'a3': 0.5, 'a4': 0.5, 'h1': 8.0, 'h2': 0.75, 'h3': 0.3, 'h4': 0.3, 'h5': 0.9, 'p1': 1.5, 'p2': 2.0}
   
   dispatch_jobs(indir, jobs, (len(cycles), z), params, dark, flat, max_threads)
   print("Completed processing '{}'".format(indir))
