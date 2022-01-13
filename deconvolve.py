@@ -487,7 +487,7 @@ def load_config(indir):
   else: czshifts = {int(k) : 0 for k in wavelengths.keys()}
 
   inpattern  = config['setup'].get( 'inpattern', '{region}_{position:05d}_Z%03d_CH{channel:d}.tif')
-  outpattern = config['setup'].get('outpattern', '{region}_{position:05d}_Z%%03d_CH{channel:d}.tif')
+  outpattern = config['setup'].get('outpattern', '{region}_{position:05d}_Z%03d_CH{channel:d}.tif')
   
   regions   = {reg+1 for reg in range(regions)}
   positions = {pos+1 for pos in range(positions)}
