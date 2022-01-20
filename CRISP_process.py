@@ -2,7 +2,7 @@ import os
 import toml
 from glob import glob
 from shutil import copyfile
-from distutils.dir_util import copy_tree
+from subprocess import call
 
 from edge_alignment import main as edge_alignment
 from calculate_tile_positions import main as calculate_tile_positions
@@ -61,7 +61,7 @@ for run in runs:
   #Update experiment.json for MAV
   updateJSON(indir, os.path.join(indir, 'CRISP_config.toml'))
   
-  print("Copying config files to '{}'".format(finaldir))
+  print(f"Copying config files to '{finaldir}'")
   to_copy = []
   to_copy.extend(glob(os.path.join(indir, '*.xml')))
   to_copy.extend(glob(os.path.join(indir, '*.txt')))
@@ -70,5 +70,5 @@ for run in runs:
   for file in to_copy:
     copyfile(file, os.path.join(finaldir, os.path.basename(file)))
   
-  print("Copying stitched images to '{}'".format(finaldir))
-  copy_tree(stitchdir, os.path.join(finaldir, 'stitched'))
+  print(f"Copying stitched images to '{finaldir}'")
+  call(['robocopy', stitchdir, os.path.join(finaldir, 'stitched'), '/J'])

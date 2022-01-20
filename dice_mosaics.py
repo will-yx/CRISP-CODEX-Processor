@@ -75,7 +75,7 @@ def process_jobs(args):
   process = mp.current_process()
   out.put('{}> pid {:5d} got {} jobs'.format(tid, process.pid, len(jobs)))
 
-  sleep(5 * tid)
+  sleep(tid * 5)
   
   for job in jobs:
     for attempts in reversed(range(3)):
@@ -87,7 +87,7 @@ def process_jobs(args):
       status = proc.exitcode
       
       if status == 0: out.put('{}> done'.format(tid))
-      else: out.put('{}> error processing image (code: {})!'.format(tid, status))
+      else: out.put(f'{tid}> error processing image (code: {status})!')
       
       if status == 0: break
       if attempts > 0: sleep(30)
