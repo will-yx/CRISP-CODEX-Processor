@@ -56,7 +56,7 @@ for run in runs:
   CRISP_stitch(decondir, stitchdir)
   
   #Step 5: Dice stitched mosaics for output
-  dice_mosaics(stitchdir, finaldir, config, max_threads=8)
+  dice_mosaics(stitchdir, finaldir, config, max_threads=2)
 
   #Update experiment.json for MAV
   updateJSON(indir, os.path.join(indir, 'CRISP_config.toml'))
