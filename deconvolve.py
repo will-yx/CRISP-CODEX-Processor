@@ -28,8 +28,7 @@ class psf_params(Structure):
               ('ng', c_float), ('ng0', c_float),
               ('ni', c_float), ('ni0', c_float),
               ('ns', c_float),
-              ('resXY', c_float),
-              ('resZ', c_float),
+              ('resXY', c_float), ('resZ', c_float),
               ('NA', c_float),
               ('lambda0', c_float), ('lambdaEM', c_float), ('fwhmEM', c_float),
               ('nbasis', c_int), ('nrho', c_int),
@@ -46,6 +45,7 @@ class deconvolution_params(Structure):
   _fields_ = [
               ('w', c_int), ('h', c_int), ('z', c_int),
               ('nx', c_int), ('ny', c_int), ('nz', c_int),
+              ('resXY', c_float), ('resZ', c_float),
               ('correct_darkfield', c_bool), ('correct_flatfield', c_bool),
               ('iterations', c_int),
               ('blind', c_bool),
@@ -393,13 +393,13 @@ def load_config(indir):
   p_psf.zpad = c_kernelsize_cufft(int(round(z + z * config['padding']['zpad_min'])), int(round(z + z * config['padding']['zpad_max']))) - z
   
   p_RL = deconvolution_params()
-  p_RL.w = w
-  p_RL.h = h
-  p_RL.z = z
+  p_RL.w, p_RL.h, p_RL.z = w, h, z
   
   p_RL.nx = c_kernelsize_cufft(int(round(w*1.05)), int(round(w*1.5)))
   p_RL.ny = c_kernelsize_cufft(int(round(h*1.05)), int(round(h*1.5)))
   p_RL.nz = z + p_psf.zpad
+
+  p_RL.resXY, p_RL.resZ = p_psf.resXY, p_psf.resZ
   
   if config.get('correction'):
     p_RL.correct_darkfield = config['correction'].get('correct_darkfield', False)
