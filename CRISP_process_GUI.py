@@ -3,7 +3,7 @@ import toml
 import numpy as np
 from glob import glob
 from shutil import copyfile
-from distutils.dir_util import copy_tree
+from subprocess import call
 
 from tkinter import *
 from tkinter import ttk
@@ -234,7 +234,7 @@ class MainWindow(Tk):
       print('Stitching montages:')
       CRISP_stitch(decondir, stitchdir)
       print("Copying stitched images to '{}'".format(finaldir))
-      copy_tree(stitchdir, os.path.join(finaldir, 'stitched'))
+      call(['robocopy', stitchdir, os.path.join(finaldir, 'stitched'), '/J'])
     
     #Step 5: Dice stitched mosaics for output
     if options[4][0] == 1:
@@ -251,6 +251,7 @@ class MainWindow(Tk):
     to_copy.extend(glob(os.path.join(indir, '*.txt')))
     to_copy.extend(glob(os.path.join(indir, '*.json')))
     to_copy.extend(glob(os.path.join(indir, '*.toml')))
+    to_copy.extend(glob(os.path.join(indir, '*config.py')))
     for file in to_copy:
       copyfile(file, os.path.join(finaldir, os.path.basename(file)))
 
