@@ -36,7 +36,7 @@ class psf_params(Structure):
               ('nr', c_int), ('accuracy', c_int), ('tolerance', c_float),
               ('sigma_xy', c_float), ('sigma_z', c_float),
               ('extend_psf', c_bool),
-              ('center_psf', c_bool),
+              ('center_psf', c_bool), ('center_psf_xy', c_float),
               ('zshift_psf', c_float),
               ('zpad', c_int),
               ('blind', c_bool)
@@ -174,7 +174,7 @@ def process_jobs(args):
   
   for job in jobs:
     for attempts in reversed(range(3)):
-      out.put('{}> processing job {}'.format(tid, job))
+      out.put(f'{tid}> processing job {job}')
       cy, ch, reg, pos = job
       if ch != psf_ch or p_RL.blind:
         psf_ch = ch
@@ -386,6 +386,7 @@ def load_config(indir):
   
   p_psf.extend_psf = config['padding'].get('extend_psf', False)
   p_psf.center_psf = config['padding'].get('center_psf', True)
+  p_psf.center_psf_xy = config['padding'].get('center_psf_xy', 1.0) # [0,1], 0 yields a 1x1 bright point, 1 is 2x2
   p_psf.zshift_psf = config['padding'].get('zshift_psf', 0)
   
   p_psf.blind = config['deconvolution'].get('blind') or False
@@ -505,7 +506,7 @@ def load_config(indir):
   return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat, regions, positions, cycles, channels
 
 
-def main(indir, outdir, max_threads=2, override=0):
+def main(indir, outdir, max_threads=2, override=None):
   d_in, d_out = check_files(indir, outdir)
   
   regions, positions, cycles, channels, params = load_config(indir)
