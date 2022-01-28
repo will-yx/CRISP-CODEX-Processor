@@ -67,8 +67,11 @@ for run in runs:
   to_copy.extend(glob(os.path.join(indir, '*.txt')))
   to_copy.extend(glob(os.path.join(indir, '*.json')))
   to_copy.extend(glob(os.path.join(indir, '*.toml')))
+  to_copy.extend(glob(os.path.join(indir, '*config.py')))
   for file in to_copy:
     copyfile(file, os.path.join(finaldir, os.path.basename(file)))
   
   print(f"Copying stitched images to '{finaldir}'")
   call(['robocopy', stitchdir, os.path.join(finaldir, 'stitched'), '/J'])
+
+print('Done!')
