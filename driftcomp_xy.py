@@ -241,7 +241,7 @@ if __name__ == '__main__':
     #main(indir, [0.25, 1, 0.5, 0.5, 6.0, 0.7, 0, 0.35, 1.0])      # v7
     #main(indir, [0.5, 1, 0.5, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v8
     #main(indir, [0.25, 1, 0.25, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v9
-  free_libs([libCRISP, libc])
+  free_libs([libCRISP])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
   print('Total run time: {}'.format(elapsed))

@@ -38,7 +38,7 @@ class psf_params(Structure):
               ('center_psf', c_bool), ('center_psf_xy', c_float),
               ('zshift_psf', c_float),
               ('zpad', c_int),
-              ('blind', c_bool)
+              ('blind', c_ubyte)
              ]
 
 class deconvolution_params(Structure):
@@ -48,7 +48,7 @@ class deconvolution_params(Structure):
               ('resXY', c_float), ('resZ', c_float),
               ('correct_darkfield', c_bool), ('correct_flatfield', c_bool),
               ('iterations', c_int),
-              ('blind', c_bool),
+              ('blind', c_ubyte),
               ('psf_update_interval', c_int),
               ('subtract_low_tile', c_bool),
               ('subtract_low_fraction', c_float),
@@ -314,7 +314,7 @@ def check_files(indir, outdir):
   parse_exposure_times(indir)
   
   if 1:
-    miscfiles = glob.glob(os.path.join(indir,'*.*'))
+    miscfiles = glob(os.path.join(indir,'*.*'))
     for file in miscfiles:
       if os.path.isfile(file):
         fname = os.path.basename(file)
