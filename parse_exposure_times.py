@@ -1,12 +1,12 @@
 import os
-import glob
 import xmltodict
 import numpy as np
+from glob import glob
 
 def parse_exposure_times(indir):
-  if len(glob.glob(os.path.join(indir,'*.xml')))==1:
-    xmlfiles = glob.glob(os.path.join(indir,'*.xml'))
-    print("Reading exposure times from XML file...")
+  xmlfiles = glob(os.path.join(indir,'*.xml'))
+  if len(xmlfiles) == 1:
+    print("Reading exposure times from XML file")
     for xmlfile in xmlfiles:
       with open(xmlfile) as fd:
         doc = xmltodict.parse(fd.read())
@@ -44,7 +44,7 @@ def parse_exposure_times(indir):
   
   else:
     exposure_times_txt = os.path.join(indir,'exposure_times.txt')
-    print("Reading exposure times from txt file...")
+    print("Reading exposure times from txt file")
     
     exposure_times = np.genfromtxt(exposure_times_txt, skip_header=1, delimiter=',')
     if np.any(np.isnan(exposure_times)):
