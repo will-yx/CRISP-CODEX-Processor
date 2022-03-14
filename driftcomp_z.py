@@ -84,7 +84,7 @@ def process_jobs(args):
     if status: break
   
   t1 = timer()
-  free_libs([libCRISP, libc])
+  free_libs([libCRISP])
   out.put(f'{tid}> joblist complete, elapsed {t1-t0:.0f}s', False)
 
 def dispatch_jobs(indir, joblist, dims, params, dark, flat, max_threads=1):
@@ -254,7 +254,7 @@ if __name__ == '__main__':
   t0 = timer()
   for indir in dirs:
     main(indir)
-  free_libs([libCRISP, libc])
+  free_libs([libCRISP])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
   print('Total run time: {}'.format(elapsed))

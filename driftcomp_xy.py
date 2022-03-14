@@ -7,14 +7,15 @@ import os
 import sys
 import glob
 import re
-import itertools
 import toml
 import numpy as np
-from shutil import copyfile
+import itertools
 from timeit import default_timer as timer
 from time import sleep
 import humanfriendly
 from PyCaffeinate import PyCaffeinate
+
+os.environ['VIPS_WARNING'] = '0'
 
 if os.name=='nt':
   libc = cdll.msvcrt
@@ -73,13 +74,14 @@ def process_jobs(args):
     if status: break
   
   t1 = timer()
-  free_libs([libCRISP, libc])
-  out.put('{}> joblist complete, elapsed {:.0f}s'.format(tid, t1-t0), False)
+  free_libs([libCRISP])
+  out.put(f'{tid}> joblist complete, elapsed {t1-t0:.0f}s', False)
 
 def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
   tstart = timer()
   manager = mp.Manager()
   
+  nc = 0
   nj = len(joblist)
   nt = np.min([mp.cpu_count(), nj, max_threads if max_threads>0 else nj])
   
@@ -99,7 +101,7 @@ def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
   with mp.Pool(processes=nt) as p:
     rs = p.map_async(process_jobs, [(q, j, indir, dims, params, jobs) for j,jobs in enumerate(joblist_per_thread)]) # 
 
-    nc = 0
+
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
       try:
@@ -122,7 +124,7 @@ def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
       except mp.queues.Empty:
         print('Message queue is empty - is the program stalled?')
         break
-
+        
     nc = len(completed_jobs)
     if(rs._number_left == 0):
       if(nc == nj): print('Finished - processed {} tiles'.format(nc))
@@ -132,44 +134,20 @@ def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
       if(nc == nj): print('Processed {} tiles'.format(nc))
       else: print('Processed {} of {} tiles'.format(nc, nj))
     
+    if(nc != nj):
+      print('Failed jobs: {}'.format(nj-nc))
+      for job in joblist:
+        if not job in completed_jobs:
+          print('  region: {}, position: {:02d}'.format(*job))
+      print()
+    
     p.close()
     p.join()
-    
-
-def get_folders(root):
-  pattern1 = re.compile('cyc\d+_reg\d+.*')
-  pattern2 = re.compile('(cyc\d+_reg\d+)')
-  
-  directories = [f for f in os.listdir(root) if os.path.isdir(os.path.join(root, f))]
-  cycle_region_dirs = [d for d in directories if pattern1.match(d)]
-  renamed = [pattern2.match(d).group(0) for d in cycle_region_dirs]
-  
-  for d1,d2 in zip(cycle_region_dirs, renamed):
-    if d1 != d2 and not os.path.exists(os.path.join(root,d2)):
-      print("  renamed input directory '{}' -> '{}'".format(d1, d2))
-      os.rename(os.path.join(root, d1), os.path.join(root, d2))
-  
-  return renamed
-
-def check_files(indir):
-  folders_in = get_folders(indir)
-  
-  if not os.path.exists(os.path.join(indir, 'driftcomp')): os.mkdir(os.path.join(indir, 'driftcomp'))
-  
-  d_in = {}
-  pattern1 = re.compile('cyc(\d+)_reg(\d+)')
-  for f in folders_in:
-    m = pattern1.match(f)
-    cyc = int(m.groups()[0])
-    reg = int(m.groups()[1])
-    key = 'c{}_r{}'.format(cyc,reg)
-    d_in[key] = os.path.join(indir, f)
-  
-  return d_in
 
 def main(indir, params=None, max_threads=2):
   print("Processing '{}'".format(indir))
-  d_in = check_files(indir)
+  
+  if not os.path.exists(os.path.join(indir, 'driftcomp')): os.mkdir(os.path.join(indir, 'driftcomp'))
   
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
 
@@ -188,7 +166,7 @@ def main(indir, params=None, max_threads=2):
       z = 1
   
   for r in regions:
-    # allocate binary output files to prevent a potential race condition
+    # allocate binary output files to prevent potential race conditions
     offsetfile = os.path.join(indir, 'driftcomp', 'region{:02d}_offsets.bin'.format(r))
     if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) != max(positions)*max(cycles)*4*4:
       np.full(max(positions)*max(cycles)*4, np.nan, dtype=np.float32).tofile(offsetfile)
