@@ -204,7 +204,7 @@ def main(indir=None, max_threads=2):
   positions = {pos+1 for pos in range(config['dimensions']['gx']*config['dimensions']['gy'])}
   cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
   channels  = set(config['microscope']['wavelengthEM'].keys())
-  reference_channel = config['microscope'].get('reference_channel', 1)
+  reference_channel = config['setup'].get('reference_channel', 1)
   inpattern  = config['setup'].get('inpattern', '{region}_{position:05d}_Z%03d_CH{channel:d}.tif')
   
   if config['correction']['correct_darkfield']:
