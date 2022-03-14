@@ -78,6 +78,7 @@ host_obj_init = false 		# slower! Store one of the arrays on the CPU to conserve
 [extended_depth_of_field]
 enabled = true            # compute EDF image; default true
 save_zstack = true        # save non-EDF images; default true
+register_edf = false      # use EDF slice for registration when stitching; default false
 
 [dynamic_range_compression]
 # image processes are performed as 32-bit float and output as 16-bit
