@@ -270,7 +270,7 @@ def main(dirs=[], show=False):
     nreg = config['dimensions']['regions']
     snake = config['dimensions'].get('snake', True)
 
-    channels = config['microscope'].get('alignment_channels', [1])
+    channels = config['setup'].get('alignment_channels', [1])
     
     calculate_tile_alignment(indir, nreg, ncy, channels, gx, gy, w, h, z, ox, oy, snake, show=show)
 
