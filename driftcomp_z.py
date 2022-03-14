@@ -3,14 +3,13 @@ import multiprocessing as mp
 from ctypes import *
 from _ctypes import FreeLibrary
 
-import sys
 import os
+import sys
 import glob
 import re
 import toml
-import itertools
 import numpy as np
-from skimage import io
+import itertools
 from timeit import default_timer as timer
 from time import sleep
 import humanfriendly
@@ -86,7 +85,7 @@ def process_jobs(args):
   
   t1 = timer()
   free_libs([libCRISP, libc])
-  out.put('{}> joblist complete, elapsed {:.1f}s'.format(tid, t1-t0), False)
+  out.put(f'{tid}> joblist complete, elapsed {t1-t0:.0f}s', False)
 
 def dispatch_jobs(indir, joblist, dims, params, dark, flat, max_threads=1):
   tstart = timer()
@@ -134,8 +133,10 @@ def dispatch_jobs(indir, joblist, dims, params, dark, flat, max_threads=1):
           
       except mp.queues.Empty:
         print('Message queue is empty - is the program stalled?')
+        break
+        
+    nc = len(completed_jobs)
     if(rs._number_left == 0):
-      nc = len(completed_jobs)
       if(nc == nj): print('Finished - processed {} tiles'.format(nc))
       else: print('Incomplete - processed {} of {} tiles'.format(nc, nj))
     else:
