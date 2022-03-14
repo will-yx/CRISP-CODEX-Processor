@@ -205,6 +205,7 @@ def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
   
   progress_dict = {}
   progressfile = os.path.join(outdir, 'deconvolution_progress.npz')
+  progressfile_bak = os.path.join(outdir, 'deconvolution_progress.bak')
   if os.path.isfile(progressfile):
     progress_dict = np.load(progressfile, allow_pickle=True, fix_imports=False)['data'].item()
 
@@ -251,12 +252,14 @@ def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
           print(msg)
         else:
           if msg[0] == 0: # success
-            progress_dict.update({repr(msg[2]): config_hash})
-            np.savez_compressed(progressfile+'.tmp.npz', data=progress_dict)
-            os.replace(progressfile+'.tmp.npz', progressfile)
-            
             completed_jobs.append(msg[2])
             nc = len(completed_jobs)
+            
+            progress_dict.update({repr(msg[2]): config_hash})
+            np.savez_compressed(progressfile+'.tmp.npz', data=progress_dict)
+            if nc % 100: os.replace(progressfile+'.tmp.npz', progressfile)
+            else: os.replace(progressfile+'.tmp.npz', progressfile_bak)
+            
             remainingtime1 = (timer() - tstart)/nc * (na-nc)
             remainingtime = np.mean([remainingtime0, remainingtime1]) if remainingtime0 else remainingtime1
             remainingtime0 = remainingtime1
