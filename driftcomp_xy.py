@@ -32,7 +32,7 @@ else:
 
 c_driftcomp = libCRISP.driftcomp_2d
 c_driftcomp.restype = c_float
-c_driftcomp.argtypes = [c_char_p, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
+c_driftcomp.argtypes = [c_char_p, c_char_p, c_int, c_int, c_int, c_int, c_int, c_int, c_int, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float, c_float]
 
 def free_libs(libs):
   for lib in libs:
@@ -40,15 +40,21 @@ def free_libs(libs):
     else: lib.dlclose(lib._handle)
     del lib
 
+def cstr(string):
+  return c_char_p(string.encode('ascii'))
+
 def driftcomp(out, tid, job, dims, params, indir):
   ncy, nz = dims
   reg, pos = job
+  ch = params['reference_channel']
   
-  c_indir = c_char_p(indir.encode('ascii'))
-
+  indir = cstr(indir)
+  inpattern = params['inpattern'].format(region=reg, position=pos, channel=ch)
+  inpattern = cstr(f"cyc%03d_reg{reg:03d}/{inpattern}")
+  
   mode = 3
   
-  status = c_driftcomp(c_indir, reg, pos, ncy, nz, 0, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'])
+  status = c_driftcomp(indir, inpattern, reg, pos, ncy, nz, 0, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], 0, 0, 0)
   
   return status
 
@@ -100,7 +106,6 @@ def dispatch_jobs(indir, joblist, dims, params, max_threads=1):
   
   with mp.Pool(processes=nt) as p:
     rs = p.map_async(process_jobs, [(q, j, indir, dims, params, jobs) for j,jobs in enumerate(joblist_per_thread)]) # 
-
 
     remainingtime0 = None
     while rs._number_left > 0 or not q.empty():
@@ -160,10 +165,12 @@ def main(indir, params=None, max_threads=2):
   cycles    = {cyc+1 for cyc in range(config['dimensions']['cycles'])}
   channels  = set(config['microscope']['wavelengthEM'].keys())
   reference_channel = config['setup'].get('reference_channel', 1)
+  inpattern  = '{region}_{position:05d}_Z%03d_CH{channel:d}.tif'
   
-  if config.get('extended_depth_of_field'):
-    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
+  if config.get('extended_depth_of_field') and config['extended_depth_of_field'].get('enabled', True):
+    if config['extended_depth_of_field'].get('register_edf', False) or not config['extended_depth_of_field'].get('save_zstack', True):
       z = 1
+      inpattern = '{region}_{position:05d}_EDF_CH{channel:d}.tif'
   
   for r in regions:
     # allocate binary output files to prevent potential race conditions
@@ -181,6 +188,8 @@ def main(indir, params=None, max_threads=2):
     params = {'a1': p[0], 'a2': p[1], 'a3': p[2], 'a4': p[3], 'h1': p[4], 'h2': p[5], 'h3': p[6], 'h4': p[7], 'h5': p[8]}
   else:
     params = {'a1': 0.25, 'a2': 1.0, 'a3': 0.5, 'a4': 1.0, 'h1': 6.0, 'h2': 0.7, 'h3': 0.0, 'h4': 0.35, 'h5': 1.0}
+  
+  params.update({'inpattern': inpattern, 'reference_channel': reference_channel})
   
   score = dispatch_jobs(indir, jobs, (len(cycles), z), params, max_threads)
   
