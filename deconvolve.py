@@ -190,7 +190,7 @@ def process_jobs(args):
   
   t1 = timer()
   c_free_psf(tid)
-  free_libs([libCRISP, libc])
+  free_libs([libCRISP])
   out.put('{}> joblist complete, elapsed {:.0f}s'.format(tid, t1-t0))
   out.put((100, tid, None))
 
@@ -545,7 +545,7 @@ if __name__ == '__main__':
   
   t0 = timer()
   main(indir, tempdir, max_threads=2, override=override_jobs)
-  free_libs([libCRISP, libc])
+  free_libs([libCRISP])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
   print('Total run time: {}'.format(elapsed))
