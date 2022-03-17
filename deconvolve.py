@@ -342,6 +342,8 @@ def check_files(indir, outdir):
 
 def load_config(indir):
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
+  print(config)
+  print()
   
   wavelengths  = config['microscope']['wavelengthEM']
   fwhms        = config['microscope']['fwhmEM']
@@ -501,9 +503,6 @@ def load_config(indir):
   params.update({'dark': dark, 'flat': flat})
   params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
   params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
-  
-  print(params)
-  print()
   
   return regions, positions, cycles, channels, params
 
