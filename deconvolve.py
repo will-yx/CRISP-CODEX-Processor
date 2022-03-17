@@ -131,46 +131,30 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
 
 def deconvolve_imagestack(out, tid, job, p, p_RL, c_psf):
   t0 = timer()
-
-  out.put(f'{tid}> debug A')
   
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
   cy, ch, reg, pos = job
-
-  out.put(f'{tid}> debug B')
   
   p_RL.ax = p['ca_xy'][ch][0] if p['ca_xy'] else 0
   p_RL.ay = p['ca_xy'][ch][1] if p['ca_xy'] else 0
-
-  out.put(f'{tid}> debug C')
   
   p_RL.zshift = p['zshifts'][reg][cy-1, pos-1] + p['czshifts'][ch] if p['zshifts'] else 0
   c_tzshifts = np.ascontiguousarray(p['tzshifts'][reg][cy-1, pos-1] + p['czshifts'][ch], dtype=np.float32).ctypes.data_as(POINTER(c_float)) if p['tzshifts'] else None
-
-  out.put(f'{tid}> debug D')
   
   key = 'c{}_r{}'.format(cy, reg)
   indir  = cstr(p['d_in' ][key])
   outdir = cstr(p['d_out'][key])
-
-  out.put(f'{tid}> debug E')
   
   inpattern  = cstr(p[ 'inpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
   outpattern = cstr(p['outpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
-
-  out.put(f'{tid}> debug F')
   
-  dark = cstr(p['dark'][ch]) if p['dark'] else None
-  flat = cstr(p['flat'][ch]) if p['flat'] else None
-
-  out.put(f'{tid}> debug G')
+  dark = cstr(p['dark'][ch]) if p['dark'][ch] else None
+  flat = cstr(p['flat'][ch]) if p['flat'][ch] else None
   
   status = c_process_imagestack(p_RL, indir, outdir, inpattern, outpattern, dark, flat, nx, ny, nz, reg, pos, ch, c_psf, c_tzshifts, tid)
-
-  out.put(f'{tid}> debug H')
   
   if status==1: return status
-  if status==0: out.put('{}> processed imagestack in {:.1f}s'.format(tid, timer() - t0))
+  if status==0: out.put(f'{tid}> processed imagestack in {timer() - t0:.1f}s')
   return status
 
 def process_jobs(args):
@@ -358,8 +342,6 @@ def check_files(indir, outdir):
 
 def load_config(indir):
   config = toml.load(os.path.join(indir, 'CRISP_config.toml'))
-  print(config)
-  print()
   
   wavelengths  = config['microscope']['wavelengthEM']
   fwhms        = config['microscope']['fwhmEM']
@@ -430,8 +412,8 @@ def load_config(indir):
     if not isinstance(dark, list): dark = [dark] * len(channels)
     if not isinstance(flat, list): flat = [flat] * len(channels)
     
-    if p_RL.correct_darkfield: dark = {c: os.path.join(indir, f) for c,f in zip(channels, dark)}
-    if p_RL.correct_flatfield: flat = {c: os.path.join(indir, f) for c,f in zip(channels, flat)}
+    dark = {c: os.path.join(indir, f) for c,f in zip(channels, dark)}
+    flat = {c: os.path.join(indir, f) for c,f in zip(channels, flat)}
     
     if len(dark) != len(channels): raise('Wrong number of darkfield images were given!')
     if len(flat) != len(channels): raise('Wrong number of flatfield images were given!') 
@@ -521,6 +503,7 @@ def load_config(indir):
   params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
   
   print(params)
+  print()
   
   return regions, positions, cycles, channels, params
 
