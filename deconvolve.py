@@ -131,27 +131,43 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
 
 def deconvolve_imagestack(out, tid, job, p, p_RL, c_psf):
   t0 = timer()
+
+  out.put(f'{tid}> debug A')
   
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
   cy, ch, reg, pos = job
+
+  out.put(f'{tid}> debug B')
   
   p_RL.ax = p['ca_xy'][ch][0] if p['ca_xy'] else 0
   p_RL.ay = p['ca_xy'][ch][1] if p['ca_xy'] else 0
+
+  out.put(f'{tid}> debug C')
   
   p_RL.zshift = p['zshifts'][reg][cy-1, pos-1] + p['czshifts'][ch] if p['zshifts'] else 0
   c_tzshifts = np.ascontiguousarray(p['tzshifts'][reg][cy-1, pos-1] + p['czshifts'][ch], dtype=np.float32).ctypes.data_as(POINTER(c_float)) if p['tzshifts'] else None
+
+  out.put(f'{tid}> debug D')
   
   key = 'c{}_r{}'.format(cy, reg)
   indir  = cstr(p['d_in' ][key])
   outdir = cstr(p['d_out'][key])
+
+  out.put(f'{tid}> debug E')
   
   inpattern  = cstr(p[ 'inpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
   outpattern = cstr(p['outpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
+
+  out.put(f'{tid}> debug F')
   
   dark = cstr(p['dark'][ch]) if p['dark'] else None
   flat = cstr(p['flat'][ch]) if p['flat'] else None
+
+  out.put(f'{tid}> debug G')
   
   status = c_process_imagestack(p_RL, indir, outdir, inpattern, outpattern, dark, flat, nx, ny, nz, reg, pos, ch, c_psf, c_tzshifts, tid)
+
+  out.put(f'{tid}> debug H')
   
   if status==1: return status
   if status==0: out.put('{}> processed imagestack in {:.1f}s'.format(tid, timer() - t0))
@@ -498,16 +514,15 @@ def load_config(indir):
   cycles    = {cyc+1 for cyc in range(cycles)}
   channels  = set(channels)
   
-  if 1:
-    params = {'inpattern': inpattern, 'outpattern': outpattern, 'snake': snake}
-    params.update({'p_psf': p_psf, 'p_RL': p_RL})
-    params.update({'dark': dark, 'flat': flat})
-    params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
-    params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
-    return regions, positions, cycles, channels, params
+  params = {'inpattern': inpattern, 'outpattern': outpattern, 'snake': snake}
+  params.update({'p_psf': p_psf, 'p_RL': p_RL})
+  params.update({'dark': dark, 'flat': flat})
+  params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
+  params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
   
-  return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat, regions, positions, cycles, channels
-
+  print(params)
+  
+  return regions, positions, cycles, channels, params
 
 def main(indir, outdir, max_threads=2, override=None):
   d_in, d_out = check_files(indir, outdir)
