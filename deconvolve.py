@@ -127,34 +127,51 @@ def generate_psf(out, tid, dims, p_psf, wavelength):
   #c_psf = c_generate_psf_vectorial(tid, w, h, nx, ny, nz, pointer(p_psf))
   c_psf = c_generate_psf_GibsonLanni(tid, w, h, nx, ny, nz, pointer(p_psf))
   #c_psf = c_generate_psf_gaussian(tid, w, h, nx, ny, nz, pointer(p_psf))
+  #c_psf = c_load_psf(tid, w, h, nx, ny, nz, pointer(p_psf))
   return c_psf
 
 def deconvolve_imagestack(out, tid, job, p, p_RL, c_psf):
   t0 = timer()
+
+  out.put(f'{tid}> debug A')
   
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
   cy, ch, reg, pos = job
+
+  out.put(f'{tid}> debug B')
   
   p_RL.ax = p['ca_xy'][ch][0] if p['ca_xy'] else 0
   p_RL.ay = p['ca_xy'][ch][1] if p['ca_xy'] else 0
+
+  out.put(f'{tid}> debug C')
   
   p_RL.zshift = p['zshifts'][reg][cy-1, pos-1] + p['czshifts'][ch] if p['zshifts'] else 0
   c_tzshifts = np.ascontiguousarray(p['tzshifts'][reg][cy-1, pos-1] + p['czshifts'][ch], dtype=np.float32).ctypes.data_as(POINTER(c_float)) if p['tzshifts'] else None
+
+  out.put(f'{tid}> debug D')
   
   key = 'c{}_r{}'.format(cy, reg)
   indir  = cstr(p['d_in' ][key])
   outdir = cstr(p['d_out'][key])
+
+  out.put(f'{tid}> debug E')
   
   inpattern  = cstr(p[ 'inpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
   outpattern = cstr(p['outpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
+
+  out.put(f'{tid}> debug F')
   
   dark = cstr(p['dark'][ch]) if p['dark'] else None
   flat = cstr(p['flat'][ch]) if p['flat'] else None
+
+  out.put(f'{tid}> debug G')
   
   status = c_process_imagestack(p_RL, indir, outdir, inpattern, outpattern, dark, flat, nx, ny, nz, reg, pos, ch, c_psf, c_tzshifts, tid)
+
+  out.put(f'{tid}> debug H')
   
   if status==1: return status
-  if status==0: out.put('{}> processed imagestack in {:.1f}s'.format(tid, timer() - t0))
+  if status==0: out.put(f'{tid}> processed imagestack in {timer() - t0:.1f}s')
   return status
 
 def process_jobs(args):
@@ -505,9 +522,6 @@ def load_config(indir):
     params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
     params.update({'zshifts': zshifts, 'tzshifts': tzshifts, 'czshifts': czshifts})
     return regions, positions, cycles, channels, params
-  
-  return p_psf, p_RL, wavelengths, ca_xy, zshifts, tzshifts, czshifts, dark, flat, regions, positions, cycles, channels
-
 
 def main(indir, outdir, max_threads=2, override=None):
   d_in, d_out = check_files(indir, outdir)
@@ -519,12 +533,20 @@ def main(indir, outdir, max_threads=2, override=None):
     print('Image stack size is too small, aborting!')
     return 1
   
+  regions = {1}
+  channels = {1}
+  
   jobs = list(itertools.product(cycles, channels, regions, positions))
   resume = True # check deconvolution progress file for remaining jobs
   
   if override: # Perform deconvolution on a specific set of tiles
     jobs = override #(cycles, channels, regions, positions)
     print('Override mode: deconvolving {}'.format(jobs))
+    params['p_RL'].iterations = 30
+    params['p_RL'].blind = True
+    params['p_psf'].center_psf_xy = 0.0
+    #params['p_RL'].ztrim1edf = params['p_RL'].ztrim1
+    #params['p_RL'].ztrim2edf = params['p_RL'].ztrim2
     resume = False # do not use resume for override
   
   dispatch_jobs(outdir, params, jobs, resume, max_threads)
@@ -538,9 +560,9 @@ if __name__ == '__main__':
   pyCaffeinate.preventSleep()
   
   ###########################################################################################
-  indir  = 'N:/CODEX raw/Mouse Sk Muscle/20190513_run08'
-  tempdir = 'X:/temp/deleteme/20190513_run08_testing'
-  override_jobs = False
+  indir  = 'M:/CODEX raw/mouse cartilage/20211224_cartilage_final_2'
+  tempdir = 'X:/deconvolved/20211224_cartilage_final_2_offsetplus000'
+  override_jobs = None
   ###########################################################################################
   
   t0 = timer()
