@@ -134,17 +134,17 @@ def deconvolve_imagestack(out, tid, job, p, p_RL, c_psf):
   
   nz, ny, nx  = p_RL.nz, p_RL.ny, p_RL.nx
   cy, ch, reg, pos = job
-
+  
   p_RL.ax = p['ca_xy'][ch][0] if p['ca_xy'] else 0
   p_RL.ay = p['ca_xy'][ch][1] if p['ca_xy'] else 0
-
+  
   p_RL.zshift = p['zshifts'][reg][cy-1, pos-1] + p['czshifts'][ch] if p['zshifts'] else 0
   c_tzshifts = np.ascontiguousarray(p['tzshifts'][reg][cy-1, pos-1] + p['czshifts'][ch], dtype=np.float32).ctypes.data_as(POINTER(c_float)) if p['tzshifts'] else None
-
+  
   key = 'c{}_r{}'.format(cy, reg)
   indir  = cstr(p['d_in' ][key])
   outdir = cstr(p['d_out'][key])
-      
+  
   inpattern  = cstr(p[ 'inpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
   outpattern = cstr(p['outpattern'].format(cycle=cy, region=reg, position=pos, channel=ch))
   
@@ -169,7 +169,7 @@ def process_jobs(args):
   
   psf_ch = None
   c_psf  = None
-
+  
   sleep(30 * tid)
   
   for job in jobs:
@@ -184,7 +184,7 @@ def process_jobs(args):
       
       if status == 0: break
       if attempts > 0: sleep(30)
-     
+    
     out.put((status, tid, job))
     if status: break
   
@@ -208,7 +208,7 @@ def dispatch_jobs(outdir, params, joblist, resume=False, max_threads=1):
   progressfile_bak = os.path.join(outdir, 'deconvolution_progress.bak')
   if os.path.isfile(progressfile):
     progress_dict = np.load(progressfile, allow_pickle=True, fix_imports=False)['data'].item()
-
+    
     if resume:
       total_jobcount = len(joblist)
       joblist = [job for job in joblist if progress_dict.get(repr(job)) != config_hash]
