@@ -52,7 +52,7 @@ def driftcomp(out, tid, job, dims, params, indir):
   inpattern = params['inpattern'].format(region=reg, position=pos, channel=ch)
   inpattern = cstr(f"cyc%03d_reg{reg:03d}/{inpattern}")
   
-  mode = 3
+  mode = 1 # mode&1: normalize image stack
   
   status = c_driftcomp(indir, inpattern, reg, pos, ncy, nz, 0, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], 0, 0, 0)
   
@@ -201,33 +201,14 @@ if __name__ == '__main__':
   pyCaffeinate.preventSleep()
   
   dirs = []
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190513_run8_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190517_run9_postclo_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190523_run10_postveh_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190610_run11_postclo_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190802_run12_preveh_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190816_run13_postclo_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190820_run14_postveh_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20190905_run15_28monTA_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20191018_run17_postveh3_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20191028_run18_preveh2_decon') # v5 to be processed
-  #dirs.append('N:/Colin/20191106 deconvolved reprocessed/20191104_run19_postclo_decon') #
-  
-  dirs.append('N:/CODEX raw/Mouse Sk Muscle/20211209_VEGF_regen_run2')
+  dirs.append('X:/deconvolved/20211224_cartilage_final_2_offsetplus015')
   
   dirs.extend(sys.argv[1:])
   
   t0 = timer()
   for indir in dirs:
-    #main(indir, [0.5, 0.5, 0.5, 0.5, 8.0, 0.75, 0.0, 0.5, 0.9]) # v1
-    #main(indir, [0.25, 1, 1, 1, 6.0, 0.7, 0, 0.35, 1.0])         # v2 best
-    #main(indir, [0.25, 1, 1, 1, 6.0, 0.7, 0, 0.3, 0.8])         # v3
-    #main(indir, [0.5, 1, 1, 1, 6.0, 0.7, 0, 0.35, 1.0])         # v4
-    main(indir, [0.25, 1, 0.5, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v5 best
-    #main(indir, [0.25, 0.5, 0.5, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v6 worse
-    #main(indir, [0.25, 1, 0.5, 0.5, 6.0, 0.7, 0, 0.35, 1.0])      # v7
-    #main(indir, [0.5, 1, 0.5, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v8
-    #main(indir, [0.25, 1, 0.25, 1, 6.0, 0.7, 0, 0.35, 1.0])      # v9
+    main(indir, [0.25, 1.0, 0.5, 1.0, 6, 0.9, 1.0, 0.0, 3]) # v1
+  
   free_libs([libCRISP])
   t1 = timer()
   elapsed = humanfriendly.format_timespan(t1-t0)
