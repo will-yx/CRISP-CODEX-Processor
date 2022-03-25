@@ -70,7 +70,7 @@ tiled_zshift = true # shift zstacks tilewise to correct for tilt within each ima
 
 [deconvolution]
 iterations = 50          # number of Richardson-Lucy iterations
-blind = false            # if true, PSF is updated periodically
+blind = true             # if true, PSF is updated periodically
 psf_update_interval = 1  # for blind deconvolution, how often to update the PSF
 
 host_obj_init = false 		# slower! Store one of the arrays on the CPU to conserve VRAM; ONLY USE IF NOT ENOUGH GPU VRAM
