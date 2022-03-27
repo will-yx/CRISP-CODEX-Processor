@@ -6,3 +6,4 @@ imagecodecs
 humanfriendly
 xmltodict
 scikit-image
+matplotlib
