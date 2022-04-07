@@ -1,0 +1,1 @@
+call %userprofile%/miniconda3/condabin/activate.bat CRISP
