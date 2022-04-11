@@ -104,9 +104,8 @@ def stitch_main(indir, outdir, params):
   nzout = (zout - 2 - 2) if zout > 8 else zout
   zregister = (zout+1) >> 1
   
-  if config.get('extended_depth_of_field'):
-    if config['extended_depth_of_field'].get('enabled', True) and not config['extended_depth_of_field'].get('save_zstack', True):
-      zregister = 0
+  if config.get('extended_depth_of_field') and config['extended_depth_of_field'].get('register_edf', False):
+    zregister = 0
   
   if not os.path.exists(outdir): os.makedirs(outdir)
   for reg in range(1,1+nreg):
