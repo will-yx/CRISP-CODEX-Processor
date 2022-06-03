@@ -322,10 +322,6 @@ def check_files(indir, outdir):
         print('copying {}'.format(fname, os.path.basename(outdir)))
         shutil.copy(file, outfile)
     print()
-
-  print('cycle_region folders:')
-  print(folders_in)
-  print()
   
   d_in = {}
   d_out = {}
