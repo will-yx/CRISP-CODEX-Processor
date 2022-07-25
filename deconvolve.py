@@ -450,7 +450,6 @@ def load_config(indir):
     p_RL.save_zstack = config['extended_depth_of_field'].get('save_zstack', True)
     p_RL.edf_filtering = config['extended_depth_of_field'].get('filtering', 0x7)
     p_RL.edf_postprocessing = config['extended_depth_of_field'].get('postprocessing', 0x0)
-  p_RL.save_zstack = True
   
   if config.get('dynamic_range_compression'):
     p_RL.drc0 = config['dynamic_range_compression'].get('drc0', 0)
