@@ -67,7 +67,7 @@ class deconvolution_params(Structure):
               ('ztrim1', c_int), ('ztrim2', c_int), ('ztrim1edf', c_int), ('ztrim2edf', c_int),
               ('zshift', c_float), ('tzshift', c_uint64),
               ('edf', c_bool), ('save_zstack', c_bool),
-              ('subband_filter', c_bool), ('majority_filter', c_bool), ('edf_clamp', c_int), 
+              ('edf_filtering', c_ubyte), ('edf_postprocessing', c_ubyte),
               ('drc0', c_float), ('drc1', c_float)
              ]
   
@@ -448,9 +448,9 @@ def load_config(indir):
   if config.get('extended_depth_of_field'):
     p_RL.edf  = config['extended_depth_of_field'].get('enabled', True)
     p_RL.save_zstack = config['extended_depth_of_field'].get('save_zstack', True)
-    p_RL.subband_filter = config['extended_depth_of_field'].get('subband_filter', False)
-    p_RL.majority_filter = config['extended_depth_of_field'].get('majority_filter', False)
-    p_RL.edf_clamp = config['extended_depth_of_field'].get('clamp_values', False)
+    p_RL.edf_filtering = config['extended_depth_of_field'].get('filtering', 0x7)
+    p_RL.edf_postprocessing = config['extended_depth_of_field'].get('postprocessing', 0x0)
+  p_RL.save_zstack = True
   
   if config.get('dynamic_range_compression'):
     p_RL.drc0 = config['dynamic_range_compression'].get('drc0', 0)
