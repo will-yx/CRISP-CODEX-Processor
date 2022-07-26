@@ -79,6 +79,8 @@ host_obj_init = false 		# slower! Store one of the arrays on the CPU to conserve
 enabled = true            # compute EDF image; default true
 save_zstack = true        # save non-EDF images; default true
 register_edf = false      # use EDF slice for registration when stitching; default false
+filtering = 0x07          # 0x1 to 0xF: gaussian filter strength (default 6-8); 0x10 = majority filter; 0x20 = subband filter
+postprocessing = 0x0      # 0 = mean, 1 = min, 2 = max, 3 = auto; 0x4 = clamp to input range, 0x8 = assign from input values
 
 [dynamic_range_compression]
 # image processes are performed as 32-bit float and output as 16-bit
