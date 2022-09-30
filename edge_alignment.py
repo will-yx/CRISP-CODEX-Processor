@@ -232,10 +232,10 @@ def main(indir=None, max_threads=1):
     return
   
   for r in regions:
-    # allocate binary output files to prevent potential race conditions
+    # preallocate output files to prevent potential race conditions
     offsetfile = os.path.join(indir, 'driftcomp', 'region{:02d}_edge_alignments.bin'.format(r))
     num_entries = max(cycles)*max(channels)*max(positions)*2*4
-    if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) < num_entries*4:
+    if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) != num_entries*4:
       np.full(num_entries, np.nan, dtype=np.float32).tofile(offsetfile)
   
   jobs = list(itertools.product(regions, cycles, channels))

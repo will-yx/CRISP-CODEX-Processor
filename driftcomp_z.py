@@ -226,15 +226,15 @@ def main(indir=None, max_threads=2):
     return
   
   for r in regions:
-    # allocate binary output files to prevent potential race conditions
+    # preallocate output files to prevent potential race conditions
     offsetfile = os.path.join(indir, 'driftcomp', 'region{:02d}_offsets.bin'.format(r))
-    if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) < max(positions)*max(cycles)*4*4:
+    if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) != max(positions)*max(cycles)*4*4:
       np.full(max(positions)*max(cycles)*4, np.nan, dtype=np.float32).tofile(offsetfile)
     
     tx = (w + 256//4 + 256-1) // 256
     ty = (h + 256//4 + 256-1) // 256
     ztilefile = os.path.join(indir, 'driftcomp', 'region{:02d}_ztiles.bin'.format(r))
-    if not os.path.isfile(ztilefile) or os.path.getsize(ztilefile) < max(positions)*ty*tx*max(cycles)*z*4:
+    if not os.path.isfile(ztilefile) or os.path.getsize(ztilefile) != max(positions)*ty*tx*max(cycles)*z*4:
       np.full(max(positions)*ty*tx*max(cycles)*z, np.nan, dtype=np.float32).tofile(ztilefile)
   
   jobs = list(itertools.product(regions, positions))

@@ -173,7 +173,7 @@ def main(indir, params=None, max_threads=2):
       inpattern = '{region}_{position:05d}_EDF_CH{channel:d}.tif'
   
   for r in regions:
-    # allocate binary output files to prevent potential race conditions
+    # preallocate output files to prevent potential race conditions
     offsetfile = os.path.join(indir, 'driftcomp', 'region{:02d}_offsets.bin'.format(r))
     if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) != max(positions)*max(cycles)*4*4:
       np.full(max(positions)*max(cycles)*4, np.nan, dtype=np.float32).tofile(offsetfile)
