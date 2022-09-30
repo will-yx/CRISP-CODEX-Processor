@@ -186,11 +186,11 @@ def main(indir, outdir, config, max_threads=4):
   ztrim = 2
   
   nzout = (zout - 2*ztrim) if zout > 8 else zout
-  zregister = (zout+1) >> 1
-  z1 = zregister - (nzout >> 1)
-  z2 = zregister + (nzout >> 1)
+  zregister = (zout+1) // 2
+  z1 = zregister - (nzout // 2)
+  z2 = zregister + (nzout // 2)
   slices = set(range(z1, z2+1))
-
+  
   if config.get('extended_depth_of_field') and config['extended_depth_of_field'].get('enabled', True):
     slices.add(0)
   
@@ -199,7 +199,10 @@ def main(indir, outdir, config, max_threads=4):
   channels = {-nch} # process all channels at once # {ch+1 for ch in range(nch)}
   
   slice_offset = -ztrim if zout > 8 else 0 # input slice 3 becomes output slice 1
-
+  
+  if slices == {0}: # if we only have a single slice, rename that slice to z1
+    slice_offset = 1
+  
   jobs = list(itertools.product(regions, cycles, channels, slices))
   dispatch_jobs(indir, outdir, jobs, gx, gy, [0, 0], slice_offset, max_threads)
 
