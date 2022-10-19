@@ -220,18 +220,19 @@ def calculate_tile_alignment(indir, nreg=5, ncy=18, channels=[1], gx=5, gy=7, w=
 
       dims = (ncy, gy, gx)
       return dx.reshape(dims), dy.reshape(dims), dz.reshape(dims), wt.reshape(dims)
+
+    px = np.zeros((gy,gx,ncy), dtype=np.float32)
+    py = np.zeros((gy,gx,ncy), dtype=np.float32)
+    pz = np.zeros((gy,gx,ncy), dtype=np.float32)
     
-    dxHs, dyHs, dzHs, wtHs = filter_dxyzs(dxHs, dyHs, dzHs, wtHs)
-    dxVs, dyVs, dzVs, wtVs = filter_dxyzs(dxVs, dyVs, dzVs, wtVs)
-    
-    px = np.empty((gy,gx,ncy), dtype=np.float32)
-    py = np.empty((gy,gx,ncy), dtype=np.float32)
-    pz = np.empty((gy,gx,ncy), dtype=np.float32)
-    for cy in range(ncy):
-      print('\nCycle {:02d}'.format(cy+1))
-      px[:,:,cy] = reorder_serpentine(force_converge('x', dxHs[cy], wtHs[cy], dxVs[cy], wtVs[cy]), serpentine)
-      py[:,:,cy] = reorder_serpentine(force_converge('y', dyHs[cy], wtHs[cy], dyVs[cy], wtVs[cy]), serpentine)
-      pz[:,:,cy] = reorder_serpentine(force_converge('z', dzHs[cy], wtHs[cy], dzVs[cy], wtVs[cy]), serpentine)
+    if gy*gx > 1:
+      dxHs, dyHs, dzHs, wtHs = filter_dxyzs(dxHs, dyHs, dzHs, wtHs)
+      dxVs, dyVs, dzVs, wtVs = filter_dxyzs(dxVs, dyVs, dzVs, wtVs)
+      for cy in range(ncy):
+        print('\nCycle {:02d}'.format(cy+1))
+        px[:,:,cy] = reorder_serpentine(force_converge('x', dxHs[cy], wtHs[cy], dxVs[cy], wtVs[cy]), serpentine)
+        py[:,:,cy] = reorder_serpentine(force_converge('y', dyHs[cy], wtHs[cy], dyVs[cy], wtVs[cy]), serpentine)
+        pz[:,:,cy] = reorder_serpentine(force_converge('z', dzHs[cy], wtHs[cy], dzVs[cy], wtVs[cy]), serpentine)
     
     if np.any(np.isnan(px)) or np.any(np.isnan(py)) or np.any(np.isnan(pz)):
       print('Error: NaN value encountered in output positions');
@@ -276,11 +277,12 @@ def main(dirs=[], show=False):
 
 if __name__ == '__main__':
   dirs = []
-  dirs.append('N:/CODEX raw/Mouse Sk Muscle/20190513_run08')
+  #dirs.append('N:/CODEX raw/Mouse Sk Muscle/20190513_run08')
   #dirs.append('N:/CODEX raw/Mouse Sk Muscle/20200130_run22_long_preveh')
   #dirs.append('N:/CODEX raw/Mouse Sk Muscle/20200202_run23_long_preveh')
   #dirs.append('N:/Colin/codex_training_nov_19')
   #dirs.append('N:/CODEX raw/Human Muscle/20200210 human_run2_regen_2')
+  dirs.append('X:/single_tile_test/raw/1tile')
   main(dirs, show=True)
 
 free_libs([libCRISP, libc])
