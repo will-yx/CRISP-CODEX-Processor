@@ -7,12 +7,14 @@ Nvidia CUDA-compatible Graphics Card (required)
 	-1080Ti or 2080Ti with 11GB VRAM (recommended)
 	-Video RAM determines the maximum size and Z-stack size for processing
 SSD or NAS are recommended for improved file read and write speeds
-Windows 10 or Windows Server 2016+ (64-bit)
+**use of a local 2TB+ NVMe SSD (PCIe4) as the scratch drive is highly recommended**
+Windows 10+ or Windows Server 2016+ (64-bit)
 
 **Installation**
 Software Requirements
 CUDA 11.2
 https://developer.nvidia.com/cuda-toolkit-archive
+**you can have concurrent versions of CUDA on your computer
 
 vips 8.10.1
 https://libvips.github.io/libvips/install.html
@@ -28,16 +30,19 @@ Python 3.8+
 https://www.python.org/
 
 **Set NotePad or NotePad++ to default app to open .toml files**
+**Currently CODEX MAV 1.3.0.308 is compatible. Changes to the experiment.json file are needed for compatibility with later versions
 
-Python packages
-**to install, navigate to CRISP folder in terminal or command prompt, then run "pip install -r requirements.txt" 
-numpy
-scipy
-imagecodecs
-toml
-humanfriendly
-xmltodict
-scikit-image
+We recommend using a conda virtual environment
+1. install miniconda3
+*note the installation path and make sure it is added to your systems environment variables
+2. in a command prompt 
+	conda create -n CRISP python=3.9
+3. activate the CRISP environment
+	conda activate CRISP
+4. nagivate to the CRISP folder then use pip to install required python packages
+	pip install -r requirements.txt
+5. in NotePad or NotePad++ edit CRISP-CODEX-Processor/conda_activate_CRISP.bat to your miniconda installation path
+6. OPTIONAL: edit CRISP-CODEX-Processor/max_threads.txt to optimally match GPU VRAM and imaging parameters
 
 **Input Image File Folder Structure**
 	Run directory
@@ -111,7 +116,8 @@ Cycle	CH1	CH2	CH3	CH4
 
 **3 ways to run**
 1. With a GUI window:
-	Run CRISP_CODEX_nolog.bat
+	Run CRISP_CODEX.bat 
+	**you may need to edit CRISP-CODEX-Processor/conda_activate_CRISP.bat to point to the correct miniconda path
 	Select input, output, and scratch drive folders
 	Create and edit the config file
 	*If reprocessing or re-starting after an error, uncheck steps that already successfully completed*
