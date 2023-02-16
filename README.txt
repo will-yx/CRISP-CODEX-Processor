@@ -4,7 +4,7 @@ CRISP CODEX Processor
 x86 processor
 32GB RAM (recommended)
 Nvidia CUDA-compatible Graphics Card (required)
-	-1080Ti or 2080Ti with 11GB VRAM (recommended)
+	-1080Ti or 2080Ti with 11GB VRAM or 3060 with 12GB VRAM (3090+ with 24GB VRAM recommended)
 	-Video RAM determines the maximum size and Z-stack size for processing
 SSD or NAS are recommended for improved file read and write speeds
 **use of a local 2TB+ NVMe SSD (PCIe4) as the scratch drive is highly recommended**
