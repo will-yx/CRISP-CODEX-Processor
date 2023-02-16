@@ -30,7 +30,7 @@ Python 3.8+
 https://www.python.org/
 
 **Set NotePad or NotePad++ to default app to open .toml files**
-**Currently CODEX MAV 1.3.0.308 is compatible. Changes to the experiment.json file are needed for compatibility with later versions
+**Currently CODEX MAV 1.3.0.308 is compatible (https://sites.imagej.net/Akoya/plugins/). Changes to the experiment.json file are needed for compatibility with later versions
 
 We recommend using a conda virtual environment
 1. install miniconda3
