@@ -16,8 +16,9 @@ CUDA 11.2
 https://developer.nvidia.com/cuda-toolkit-archive
 **you can have concurrent versions of CUDA on your computer
 
-vips 8.10.1
+vips 8.11.4
 https://libvips.github.io/libvips/install.html
+https://github.com/libvips/build-win64-mxe/releases/tag/v8.11.4
 **make sure to add path to the bin folder to system environment variables
 
 Visual Studio Community
