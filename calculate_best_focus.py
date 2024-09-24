@@ -379,6 +379,15 @@ def main(dirs=[], show=False):
     ncy  = config['dimensions']['cycles']
     nreg = config['dimensions']['regions']
     snake = config['dimensions'].get('snake', True)
+    
+    if z<4:
+        print("fewer than 4 slices... skipping best focus finding")
+        for r in range(nreg):
+          zshiftsfile = os.path.join(indir, 'region{:02d}_zshifts.bin'.format(r+1))
+          np.ascontiguousarray(np.zeros((ncy*gx*gy//2)).flat).tofile(zshiftsfile)
+          tile_zshiftsfile = os.path.join(indir, 'region{:02d}_tile_zshifts.bin'.format(r+1))
+          np.ascontiguousarray(np.zeros((ncy,gx*6,gy*4)).flat).tofile(tile_zshiftsfile)
+        return
 
     print(indir)
     res = calculate_best_focus(indir, nreg, ncy, gx, gy, w, h, z, ox, oy, snake, show=show)

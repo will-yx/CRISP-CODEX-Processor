@@ -227,7 +227,7 @@ def main(indir=None, max_threads=1):
   else:
     flat = None
   
-  if z<4:
+  if z<2:
     print('Image stack size is too small, aborting!')
     return
   

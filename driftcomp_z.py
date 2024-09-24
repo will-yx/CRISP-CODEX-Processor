@@ -221,8 +221,19 @@ def main(indir=None, max_threads=2):
   else:
     flat = None
   
-  if z<4:
-    print('Image stack size is too small, aborting!')
+  if z<3:
+    print('Image stack size is too small, skipping Z correction!')
+    for r in regions:
+    # preallocate output files to prevent potential race conditions
+      offsetfile = os.path.join(indir, 'driftcomp', 'region{:02d}_offsets.bin'.format(r))
+      if not os.path.isfile(offsetfile) or os.path.getsize(offsetfile) != max(positions)*max(cycles)*4*4:
+        np.full(max(positions)*max(cycles)*4, 0, dtype=np.float32).tofile(offsetfile)
+      
+      tx = (w + 256//4 + 256-1) // 256
+      ty = (h + 256//4 + 256-1) // 256
+      ztilefile = os.path.join(indir, 'driftcomp', 'region{:02d}_ztiles.bin'.format(r))
+      if not os.path.isfile(ztilefile) or os.path.getsize(ztilefile) != max(positions)*ty*tx*max(cycles)*z*4:
+        np.full(max(positions)*ty*tx*max(cycles)*z, 0, dtype=np.float32).tofile(ztilefile)
     return
   
   for r in regions:

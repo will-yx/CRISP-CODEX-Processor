@@ -507,7 +507,7 @@ def main(indir, outdir, max_threads=2, override=None):
   regions, positions, cycles, channels, params = load_config(indir)
   params.update({'d_in': d_in, 'd_out': d_out})
   
-  if params['p_RL'].w<64 or params['p_RL'].h<64 or params['p_RL'].z<4:
+  if params['p_RL'].w<64 or params['p_RL'].h<64 or params['p_RL'].z<3:
     print('Image stack size is too small, aborting!')
     return 1
   
