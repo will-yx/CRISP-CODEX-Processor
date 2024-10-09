@@ -52,7 +52,7 @@ def driftcomp(out, tid, job, dims, params, indir):
   inpattern = params['inpattern'].format(region=reg, position=pos, channel=ch)
   inpattern = cstr(f"cyc%03d_reg{reg:03d}/{inpattern}")
   
-  mode = 1 # mode&1: normalize image stack
+  mode = 1 # mode&1: normalize image stack 5 to loosen stitch restrictions
   
   status = c_driftcomp(indir, inpattern, reg, pos, ncy, nz, 0, tid, mode, params['a1'], params['a2'], params['a3'], params['a4'], params['h1'], params['h2'], params['h3'], params['h4'], params['h5'], 0, 0, 0)
   

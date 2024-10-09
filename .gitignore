@@ -1,3 +1,6 @@
 *.pyc
 __pycache__/
 logs/
+max_threads.txt
+CRISP_GUI.tmp.npy
+conda_activate_CRISP.bat
