@@ -2,7 +2,7 @@ CRISP CODEX Processor
 
 **System Requirements**
 x86 processor
-32GB RAM (recommended)
+32GB RAM (64GB+ recommended)
 Nvidia CUDA-compatible Graphics Card (required)
 	-1080Ti or 2080Ti with 11GB VRAM or 3060 with 12GB VRAM (3090+ with 24GB VRAM recommended)
 	-Video RAM determines the maximum size and Z-stack size for processing
@@ -51,12 +51,12 @@ We recommend using a conda virtual environment
 		->Cycle 1 Region 1 images ["cyc001_reg001"]
 		|	|
 		|	-> Tiled stacked multichannel images (grayscale 16-bit) file name pattern ["*_00001_Z001_CH1.tif"]
-		|		["*_00001_Z002_CH1.tif"] ... any string_tile index_Z slice_channel.tif
+		|		["*_00001_Z002_CH1.tif"] ... (single Z, single channel grayscale 16-bit images; naming formats can be modified in the CRISP_config.toml
 		|
 		->Cycle 1 Region 2 images ["cyc001_reg002"]
 		|	|
 		|	-> Tiled stacked multichannel images (grayscale 16-bit) file name pattern ["*_00001_Z001_CH1.tif"]
-		|		["*_00001_Z002_CH1.tif"] ... any string_tile index_Z slice_channel.tif
+		|		["*_00001_Z002_CH1.tif"] ... 
 		|
 		...
 		|
@@ -97,7 +97,10 @@ Copy and configure CRISP_config.toml to match experimental settings.
 		host_obj_init = false 		# Slower! Store one of the arrays on the CPU to conserve VRAM; ONLY USE IF NOT ENOUGH GPU VRAM
 		
 		[extended_depth_of_field]
-		enabled
+		enabled = true            # compute EDF image; default true
+		save_zstack = false        # save non-EDF images; for 2D analysis with a single Z plane or 3D analysis with higher number of output Z slices
+		register_edf = true      # use EDF slice for registration when stitching; default true
+		# defaults registers and saves EDF images only, save_zstack to true if analyzing in 3D or imaging thicker or high density tissues
 		
 		[dynamic_range_compression]
 		drc0, drc1
@@ -105,7 +108,10 @@ Copy and configure CRISP_config.toml to match experimental settings.
 		[background_subtraction]
 		 # perform background subtraction using up to 3 cycles
 		 # cycles are specified as 1-indexed: 1 is the first cycle, -1 is the last cycle, -2 is the penultimate cycle, etc.
-		blankcycles = [1, -3, -2] # indicate which cycles are blank cycles; set to [] to disable background subtraction
+		blankcycles = [2, -3, -2] # indicate which cycles are blank cycles; set to [] to disable background subtraction
+		 # optimal imaging set up:
+		 # [1] Bleach cycle, [2] 1st blank cycle (max exposure times), marker cycles..., end blank cycles ( [-2] max exposure only, or [-3, -2] min and max exposures), [-1] non-CODEX stains
+		 # consistent exposure times across cycles with max-max [2, -2] background subtraction yields the best results, staining intensity should be determined by titering antibodies
 
 *** Background subtraction and exposure time for cycles: if imaging was performed on an Akoya CODEX instrument, import the XML file from the configuration. 
 If not, please supply a text file as exposure_times.txt in the following format:
@@ -160,6 +166,11 @@ To generate flatfield images:
 - significant uneven illumination after this step may require preprocessing such as rolling circle background subtraction prior to processing
 
 Release notes:
+v0.7
+-updates for compatibility with 3 slices
+-automatically determine threads for deconvolution
+-updated default params in config for increased throughput and EDF output
+-updated README
 v0.6
 -recompiled with CUDA 11.2
 -updated DLL loading for Python 3.7+

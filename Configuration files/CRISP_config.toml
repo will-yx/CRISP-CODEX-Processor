@@ -3,7 +3,7 @@ title = "20X Keyence deconvolution configuration"
 [dimensions]
 width = 1920    # width of each image
 height = 1440   # height of each image
-slices = 25     # number of Z-slices
+slices = 5     # number of Z-slices
 gx = 5          # number of image columns per region
 gy = 5          # number of image rows per region
 cycles = 19     # number of cycles imaged in run
@@ -28,10 +28,10 @@ fwhmEM       = {1 =  70,       2 =  40,    3 =  30,       4 =  25} # [nm] full-w
 channelZPos  = {1 = 0.0,       2 = 0.0,    3 = 0.0,       4 = 0.0} # [um] relative Z-position of channels; measured by approximating Z-offsets using omnifluorescent beads; first channel should be 0
 
 resXY = 0.377387  # [um/px] pixel size
-resZ = 0.800      # [um/px] Z slice distance
+resZ = 1.200      # [um/px] Z slice distance
 
 [gibson_lanni]
-nbasis = 1000     # number of Bessel functions to use; determines accuracy; default 1000
+nbasis = 5000     # number of Bessel functions to use; determines accuracy; default 1000
 nrho = 10000      # number of angles to compute; determines accuracy; default 10000
 zpos = 10.2       # [um] position of particle above coverslip; roughly the thickness of tissue section in um;
 ti0  = 1000       # [um] working distance of objective lens in um;
@@ -61,9 +61,9 @@ zpad_min = 0.9 # pad image depth by at least this fraction of Z
 zpad_max = 1.1 # pad image depth by at most this fraction of Z
 
 # Typically you want zout = zin - ztrim1 - ztrim2, so each output slice is calculated from a single input slice
-zout   = 11    # squashes trimmed imagestack down to zout slices
-ztrim1 = 7     # trim slices from the beginning of the stack
-ztrim2 = 7     # trim slices from the end of the stack
+zout   = 1    # squashes trimmed imagestack down to zout slices
+ztrim1 = 2     # trim slices from the beginning of the stack
+ztrim2 = 2     # trim slices from the end of the stack
 
 frame_zshift = true # shift zstacks to put best-focus slice in the center of the stack
 tiled_zshift = true # shift zstacks tilewise to correct for tilt within each image
@@ -77,8 +77,8 @@ host_obj_init = false 		# slower! Store one of the arrays on the CPU to conserve
 
 [extended_depth_of_field]
 enabled = true            # compute EDF image; default true
-save_zstack = true        # save non-EDF images; default true
-register_edf = false      # use EDF slice for registration when stitching; default false
+save_zstack = false        # save non-EDF images; default false
+register_edf = true      # use EDF slice for registration when stitching; default true
 filtering = 0x07          # 0x1 to 0xF: gaussian filter strength (default 6-8); 0x10 = majority filter; 0x20 = subband filter
 postprocessing = 0x0      # 0 = mean, 1 = min, 2 = max, 3 = auto; 0x4 = clamp to input range, 0x8 = assign from input values
 
@@ -93,4 +93,4 @@ drc1 =  1000000 # largest representable float
 [background_subtraction]
 # perform background subtraction using up to 3 cycles
 # cycles are specified as 1-indexed: 1 is the first cycle, -1 is the last cycle, -2 is the penultimate cycle, etc.
-blankcycles = [1, -2, -1] # indicate which cycles are blank cycles; set to [] to disable background subtraction
+blankcycles = [2, -2] # indicate which cycles are blank cycles; set to [] to disable background subtraction
