@@ -1,7 +1,7 @@
-max_threads_edge_alignment=1
-max_threads_z_driftcomp=1
-max_threads_deconvolution=2
-max_threads_xy_driftcomp=4
+max_threads_edge_alignment=3
+max_threads_z_driftcomp=3
+max_threads_deconvolution=auto
+max_threads_xy_driftcomp=3
 max_threads_dicing=2
 #####################
 ADJUST MAX THREADS USED FOR PARALLELIZATION

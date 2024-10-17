@@ -518,6 +518,15 @@ def main(indir, outdir, max_threads=2, override=None):
     jobs = override #(cycles, channels, regions, positions)
     print('Override mode: deconvolving {}'.format(jobs))
     resume = False # do not use resume for override
+    
+  if max_threads=='auto':
+      max_threads = 24//(1.1*(params['z']**-0.42)*params['z'])
+      if max_threads == 0:
+        print('Number of slices may exceed available VRAM, continuing single threaded... manual override using "max_threads.txt"')
+      else:
+        print(f'deconvolving using atuomatically determined {max_threads} threads based on 24gb VRAM')
+  else:
+      max_threads = int(max_threads)
   
   dispatch_jobs(outdir, params, jobs, resume, max_threads)
   

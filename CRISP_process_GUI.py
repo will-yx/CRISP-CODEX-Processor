@@ -191,7 +191,7 @@ class MainWindow(Tk):
       threading = dict((x.strip(),y.strip()) for x,y in (line[:-1].split('=') for line in open('max_threads.txt').readlines() if line.startswith('max_threads')))
       max_threads_edge_alignment=int(threading['max_threads_edge_alignment'])
       max_threads_z_driftcomp=int(threading['max_threads_z_driftcomp'])
-      max_threads_deconvolution=int(threading['max_threads_deconvolution'])
+      max_threads_deconvolution=threading['max_threads_deconvolution']
       max_threads_xy_driftcomp=int(threading['max_threads_xy_driftcomp'])
       max_threads_dicing=int(threading['max_threads_dicing'])
       print(max_threads_edge_alignment,max_threads_z_driftcomp,max_threads_deconvolution,max_threads_xy_driftcomp,max_threads_dicing)
