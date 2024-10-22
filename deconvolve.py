@@ -493,7 +493,7 @@ def load_config(indir):
   cycles    = {cyc+1 for cyc in range(cycles)}
   channels  = set(channels)
   
-  params = {'inpattern': inpattern, 'outpattern': outpattern, 'snake': snake}
+  params = {'inpattern': inpattern, 'outpattern': outpattern, 'snake': snake, 'z':z}
   params.update({'p_psf': p_psf, 'p_RL': p_RL})
   params.update({'dark': dark, 'flat': flat})
   params.update({'wavelengths': wavelengths, 'ca_xy': ca_xy})
@@ -520,7 +520,7 @@ def main(indir, outdir, max_threads=2, override=None):
     resume = False # do not use resume for override
     
   if max_threads=='auto':
-      max_threads = 24//(1.1*(params['z']**-0.42)*params['z'])
+      max_threads = int(24//(1.1*(params['z']**-0.42)*params['z']))
       if max_threads == 0:
         print('Number of slices may exceed available VRAM, continuing single threaded... manual override using "max_threads.txt"')
       else:
